@@ -11,7 +11,7 @@ $products[0]["costPerItem"] = $price; // цена
 $products[0]["amount"] = 1; // количество
             
 $_salesdrive_values = [
-    "form" => "eafei_g_CLsBPyeBHWyZV8iT1zgw5hIhFWfUwEM_QlFRyZls8tqz7ndrQ8",
+    "form" => "",
     "getResultData" => "", // Получать данные созданной заявки (0 - не получать, 1 - получать)
     "products" => $products, //Товары/Услуги
     "comment" => "", // Комментарий
