@@ -7,6 +7,6 @@ $discount = 20; //скидка в процентах
 $price = 1990; //цена продажи
 $oldprice = 2280; //старая цена
 
-$item_name = 'Shur_velukiy_24v';
-$salesdrive_item_id = id_348569;
+$item_name = 'name';
+$salesdrive_item_id = id_11111;
 ?>
