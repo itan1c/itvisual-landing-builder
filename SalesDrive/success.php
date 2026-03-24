@@ -12,21 +12,6 @@ include_once 'my_conf.php';
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-10886574534"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'AW-10886574534');
-  gtag('event', 'conversion', {
-      'send_to': 'AW-10886574534/RtlRCOnj3YAYEMbjj8co',
-      'value': 200.0,
-      'currency': 'UAH'
-  });
-</script>
-
 </head>
 
 <body>
