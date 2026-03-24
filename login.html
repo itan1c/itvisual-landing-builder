@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вхід - ITVisual</title>
+    <link rel="stylesheet" href="css/editor.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0c10;
+            color: #fff;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .auth-card {
+            background: #15161a;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 40px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            text-align: left;
+            color: #aaa;
+        }
+
+        .checkbox-group input {
+            width: auto;
+            margin: 0;
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        input {
+            width: 100%;
+            background: #0b0c10;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            outline: none;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        input:focus {
+            border-color: #667eea;
+        }
+
+        .btn-solid {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-solid:hover {
+            opacity: 0.9;
+        }
+
+        .links {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #888;
+        }
+
+        .links a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        const savedUser = JSON.parse(localStorage.getItem('ve_user') || 'null');
+        if (savedUser && savedUser.token) {
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+    <div class="auth-card">
+        <a href="index.html" style="text-decoration:none; color:white;">
+            <div style="font-size:24px; font-weight:800; margin-bottom:20px; letter-spacing:-0.5px;">ITVisual</div>
+        </a>
+        <h2>З поверненням</h2>
+        <form id="loginForm">
+            <input type="email" placeholder="Email" required>
+            <input type="password" placeholder="Пароль" required>
+            <label class="checkbox-group">
+                <input type="checkbox" id="rememberMe">
+                Запам'ятати мене
+            </label>
+            <button type="submit" class="btn-solid">Увійти</button>
+        </form>
+        <div class="links">
+            Ще не маєте акаунту? <a href="register.html">Зареєструватись</a>
+        </div>
+    </div>
+    <script>
+        document.getElementById('loginForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const email = e.target.elements[0].value;
+            const password = e.target.elements[1].value;
+
+            const btn = document.querySelector('.btn-solid');
+            const originalText = btn.textContent;
+            btn.textContent = 'Зачекайте...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    alert(data.error);
+                } else if (data.success) {
+                    localStorage.setItem('ve_user', JSON.stringify(data.user));
+                    window.location.href = 'dashboard.html';
+                }
+            } catch (err) {
+                alert('Помилка з\'єднання з сервером');
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,29 @@
+# Build and IDE files
+.wrangler/
+node_modules/
+package-lock.json
+.vscode/
+.idea/
+*.log
+
+# Databases & local data
+*.sql
+!schema.sql
+*.sqlite
+*.db
+
+# Local scripts and patches (proprietary/sensitive)
+*.py
+*.bat
+start.bat
+patch*.py
+alter.sql
+
+# Sensitive backend
+functions/api/admin/
+functions/api/payment/
+
+# Local configuration
+wrangler.toml
+.env
+.dev.vars

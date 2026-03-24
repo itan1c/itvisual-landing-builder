@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Основні мета-теги -->
+    <title>ITVisual – Візуальний конструктор та редактор лендінгів</title>
+    <meta name="description" content="Швидкий редактор лендів та конструктор сайтів для товарного бізнесу і арбітражу. Завантажуйте ZIP, редагуйте візуально та експортуйте без знань коду.">
+    <meta name="keywords" content="Редактор лендов, Конструктор лендов, візуальний редактор сайтів, створення лендінгів, арбітраж трафіку, товарний бізнес, редактор html, лендінг пейдж">
+    <meta name="author" content="ITVisual">
+    <link rel="canonical" href="https://itvisual-pages.pages.dev/">
+
+    <!-- Open Graph (Фейсбук, Телеграм, Вайбер) -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://itvisual-pages.pages.dev/">
+    <meta property="og:title" content="ITVisual – Візуальний конструктор та редактор лендінгів">
+    <meta property="og:description" content="Редактор лендів для товарного бізнесу та арбітражу. Завантажте шаблон або вкажіть URL, редагуйте текст і фото візуально без знань коду.">
+    <!-- Для прев'ю краще використовувати абсолютний шлях -->
+    <meta property="og:image" content="https://itvisual-pages.pages.dev/img/logo.png">
+    <meta property="og:site_name" content="ITVisual">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:url" content="https://itvisual-pages.pages.dev/">
+    <meta name="twitter:title" content="ITVisual – Візуальний конструктор лендінгів">
+    <meta name="twitter:description" content="Швидкий редактор лендів для товарного бізнесу.">
+    <meta name="twitter:image" content="https://itvisual-pages.pages.dev/img/logo.png">
+
+    <link rel="icon" type="image/png" href="img/logo.png">
+    <link rel="apple-touch-icon" href="img/logo.png">
+    <link rel="stylesheet" href="css/editor.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0c10;
+            color: #fff;
+            line-height: 1.6;
+            overflow-y: auto !important;
+            height: auto !important;
+            display: block !important;
+        }
+
+        /* NAV */
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(11,12,16,0.85);
+            backdrop-filter: blur(12px);
+        }
+        .logo {
+            font-size: 24px; font-weight: 800;
+            display: flex; align-items: center; gap: 10px;
+            color: #fff; text-decoration: none; letter-spacing: -0.5px;
+        }
+        .nav-links { display: flex; align-items: center; gap: 30px; }
+        .nav-links a { color: #aaa; text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
+        .nav-links a:hover { color: #fff; }
+        .nav-links .btn {
+            background: #fff; color: #0b0c10; padding: 10px 20px;
+            border-radius: 8px; font-weight: 600; text-decoration: none;
+        }
+
+        /* HERO */
+        .hero {
+            text-align: center; padding: 130px 20px 100px;
+            max-width: 900px; margin: 0 auto;
+            position: relative; overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute; top: -50%; left: 50%; transform: translateX(-50%);
+            width: 800px; height: 800px;
+            background: radial-gradient(circle, rgba(102,126,234,0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(102,126,234,0.1); border: 1px solid rgba(102,126,234,0.25);
+            padding: 8px 18px; border-radius: 30px; font-size: 13px; color: #667eea;
+            margin-bottom: 30px; font-weight: 600;
+        }
+        .hero-badge .dot { width: 6px; height: 6px; background: #667eea; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .hero h1 {
+            font-size: 62px; margin-bottom: 24px; line-height: 1.1; font-weight: 900;
+            background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+            background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: -1.5px; position: relative;
+        }
+        .hero p { font-size: 20px; color: #888; margin-bottom: 40px; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .hero-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2); color: white;
+            padding: 16px 36px; border-radius: 10px; font-size: 17px; font-weight: 600;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 10px;
+            transition: all 0.3s; box-shadow: 0 10px 30px rgba(102,126,234,0.3);
+        }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(102,126,234,0.4); }
+        .btn-secondary {
+            background: rgba(255,255,255,0.05); color: #ccc; border: 1px solid rgba(255,255,255,0.1);
+            padding: 16px 36px; border-radius: 10px; font-size: 17px; font-weight: 600;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 10px;
+            transition: all 0.3s;
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+        /* STATS */
+        .stats {
+            display: flex; justify-content: center; gap: 60px; padding: 60px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .stat { text-align: center; }
+        .stat-num { font-size: 36px; font-weight: 900; color: #667eea; }
+        .stat-label { font-size: 14px; color: #666; margin-top: 4px; }
+
+        /* HOW IT WORKS */
+        .how-it-works { padding: 100px 40px; }
+        .section-title {
+            text-align: center; font-size: 38px; font-weight: 800;
+            margin-bottom: 16px; color: #fff;
+        }
+        .section-subtitle { text-align: center; color: #666; font-size: 18px; margin-bottom: 60px; }
+        .steps-grid {
+            display: grid; grid-template-columns: repeat(3,1fr); gap: 40px;
+            max-width: 1000px; margin: 0 auto;
+        }
+        .step-card {
+            text-align: center; padding: 40px 30px;
+            background: linear-gradient(180deg, rgba(102,126,234,0.04) 0%, transparent 100%);
+            border: 1px solid rgba(255,255,255,0.04); border-radius: 20px;
+            position: relative; transition: transform 0.3s;
+        }
+        .step-card:hover { transform: translateY(-5px); border-color: rgba(102,126,234,0.15); }
+        .step-num {
+            position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea, #764ba2); color: #fff;
+            width: 32px; height: 32px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; font-weight: 800; font-size: 14px;
+        }
+        .step-icon { color: #667eea; margin-bottom: 20px; }
+        .step-card h3 { font-size: 20px; margin-bottom: 12px; color: #fff; }
+        .step-card p { color: #888; font-size: 15px; }
+
+        /* AUDIENCE */
+        .audience { padding: 80px 40px; background: #111216; }
+        .audience-grid {
+            display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 30px;
+            max-width: 1100px; margin: 0 auto;
+        }
+        .audience-card {
+            background: #15161a; padding: 40px; border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.03); transition: all 0.3s;
+        }
+        .audience-card:hover { transform: translateY(-5px); border-color: rgba(102,126,234,0.3); }
+        .audience-card .icon { color: #667eea; margin-bottom: 20px; }
+        .audience-card h3 { font-size: 22px; margin: 0 0 15px 0; color: #fff; }
+        .audience-card p { color: #888; font-size: 15px; margin: 0; line-height: 1.7; }
+
+        /* FEATURES GRID */
+        .features-section { padding: 100px 40px; }
+        .feat-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 24px;
+            max-width: 1100px; margin: 0 auto;
+        }
+        .feat-card {
+            background: #111216; border: 1px solid rgba(255,255,255,0.04);
+            padding: 32px; border-radius: 16px; transition: all 0.3s;
+        }
+        .feat-card:hover { border-color: rgba(102,126,234,0.2); transform: translateY(-4px); }
+        .feat-card .feat-icon {
+            width: 48px; height: 48px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 20px; color: #fff;
+        }
+        .feat-card h3 { font-size: 18px; margin-bottom: 10px; color: #fff; }
+        .feat-card p { color: #777; font-size: 14px; line-height: 1.6; }
+        .feat-icon.purple { background: rgba(118,75,162,0.2); }
+        .feat-icon.blue { background: rgba(102,126,234,0.2); }
+        .feat-icon.green { background: rgba(34,197,94,0.2); }
+        .feat-icon.orange { background: rgba(249,115,22,0.2); }
+        .feat-icon.pink { background: rgba(236,72,153,0.2); }
+        .feat-icon.cyan { background: rgba(6,182,212,0.2); }
+        .feat-icon.yellow { background: rgba(234,179,8,0.2); }
+        .feat-icon.red { background: rgba(239,68,68,0.2); }
+
+        /* PRICING */
+        .pricing { padding: 100px 20px; text-align: center; background: #0b0c10; border-top: 1px solid rgba(255,255,255,0.05); }
+        .pricing-grid { display: flex; justify-content: center; gap: 30px; margin-top: 60px; flex-wrap: wrap; }
+        .price-card {
+            background: #111216; border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 20px; padding: 50px 40px; width: 340px; text-align: left; position: relative;
+        }
+        .price-card.pro {
+            border-color: #667eea;
+            background: linear-gradient(180deg, rgba(102,126,234,0.06) 0%, transparent 100%);
+            box-shadow: 0 20px 60px rgba(102,126,234,0.1);
+        }
+        .price-card.pro::before {
+            content: 'Популярний вибір'; position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea, #764ba2); color: #fff;
+            font-size: 12px; padding: 6px 16px; border-radius: 20px; font-weight: 800;
+            letter-spacing: 0.5px; text-transform: uppercase;
+        }
+        .price-card h3 { font-size: 24px; margin-top: 0; color: #fff; }
+        .price-card .price { font-size: 48px; font-weight: 900; margin: 20px 0; color: #fff; }
+        .price-card .price span { font-size: 16px; color: #666; font-weight: 500; }
+        .price-card ul { list-style: none; padding: 0; margin-bottom: 40px; }
+        .price-card ul li { margin-bottom: 16px; color: #aaa; display: flex; align-items: center; gap: 12px; font-size: 15px; }
+        .price-card ul li i { color: #667eea; flex-shrink: 0; }
+        .price-card .btn-price {
+            display: block; text-align: center; padding: 14px; border-radius: 10px;
+            text-decoration: none; font-weight: 600; transition: all 0.3s; font-size: 15px;
+        }
+        .btn-outline { border: 1px solid rgba(255,255,255,0.1); color: #fff; background: rgba(255,255,255,0.02); }
+        .btn-outline:hover { background: rgba(255,255,255,0.06); }
+        .btn-solid { background: #fff; color: #0b0c10; }
+        .btn-solid:hover { background: #e0e0e0; }
+
+        /* CTA */
+        .cta-section {
+            text-align: center; padding: 100px 20px;
+            background: linear-gradient(180deg, #0b0c10 0%, #111216 100%);
+            position: relative; overflow: hidden;
+        }
+        .cta-section::before {
+            content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(102,126,234,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .cta-section h2 { font-size: 42px; font-weight: 900; margin-bottom: 20px; position: relative; }
+        .cta-section p { color: #888; font-size: 18px; margin-bottom: 40px; position: relative; }
+
+        /* FOOTER */
+        footer {
+            text-align: center; padding: 50px 40px; border-top: 1px solid rgba(255,255,255,0.05);
+            color: #666; font-size: 14px; background: #111216;
+        }
+        .footer-links { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; }
+        .footer-links a { color: #888; text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        .footer-links a:hover { color: #667eea; }
+
+        /* ANIMATIONS */
+        .fade-up {
+            opacity: 0; transform: translateY(30px);
+            transition: opacity 0.6s, transform 0.6s;
+        }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 36px; }
+            .hero p { font-size: 16px; }
+            .steps-grid { grid-template-columns: 1fr; }
+            .stats { flex-direction: column; gap: 30px; }
+            .nav { padding: 16px 20px; }
+            .nav-links { gap: 16px; }
+            .feat-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="nav">
+        <a href="index.html" class="logo">ITVisual</a>
+        <div class="nav-links">
+            <a href="#features">Можливості</a>
+            <a href="#pricing">Тарифи</a>
+            <a href="login.html">Увійти</a>
+            <a href="register.html" class="btn">Почати безкоштовно</a>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <header class="hero">
+        <div class="hero-badge"><span class="dot"></span> Візуальний конструктор нового покоління</div>
+        <h1>Створюй сайти швидше, ніж будь&#8209;коли</h1>
+        <p>Завантаж ZIP-шаблон, редагуй візуально та запускай лендінг за лічені хвилини. Без знань коду.</p>
+        <div class="hero-buttons">
+            <a href="register.html" class="btn-primary">
+                <i data-lucide="rocket" width="20" height="20"></i>
+                Створити проєкт
+            </a>
+            <a href="#features" class="btn-secondary">
+                <i data-lucide="play" width="20" height="20"></i>
+                Переглянути можливості
+            </a>
+        </div>
+    </header>
+
+    <!-- STATS -->
+    <div class="stats fade-up">
+        <div class="stat">
+            <div class="stat-num">∞</div>
+            <div class="stat-label">Безлімітний трафік</div>
+        </div>
+        <div class="stat">
+            <div class="stat-num">&lt;5 хв</div>
+            <div class="stat-label">Від ZIP до готового сайту</div>
+        </div>
+        <div class="stat">
+            <div class="stat-num">0$</div>
+            <div class="stat-label">За хостинг назавжди</div>
+        </div>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <section class="how-it-works fade-up">
+        <h2 class="section-title">Як це працює?</h2>
+        <p class="section-subtitle">Три кроки — і ваш сайт готовий</p>
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-num">1</div>
+                <i data-lucide="upload" class="step-icon" width="40" height="40"></i>
+                <h3>Завантажте ZIP</h3>
+                <p>Закиньте архів з готовим шаблоном або власним сайтом. Усі CSS, JS, PHP та зображення збережуться.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">2</div>
+                <i data-lucide="mouse-pointer-click" class="step-icon" width="40" height="40"></i>
+                <h3>Редагуйте візуально</h3>
+                <p>Клікніть на будь-який елемент: текст, фото, кнопку — і змінюйте його прямо на сторінці. Як в Word!</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">3</div>
+                <i data-lucide="download" class="step-icon" width="40" height="40"></i>
+                <h3>Експортуйте</h3>
+                <p>Натисніть одну кнопку — отримайте чистий ZIP із усіма правками, готовий для заливки на хостинг.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- AUDIENCE -->
+    <section class="audience fade-up" id="audience">
+        <h2 class="section-title">Кому підійде ITVisual?</h2>
+        <p class="section-subtitle">Інструмент для тих, хто цінує швидкість</p>
+        <div class="audience-grid">
+            <div class="audience-card">
+                <i data-lucide="shopping-bag" class="icon" width="32" height="32"></i>
+                <h3>Товарний бізнес</h3>
+                <p>Швидко копіюйте лендінги, змінюйте товари, ціни та описи. Запускайте нові офери за 5 хвилин замість годин.</p>
+            </div>
+            <div class="audience-card">
+                <i data-lucide="code-2" class="icon" width="32" height="32"></i>
+                <h3>Верстальники</h3>
+                <p>Закиньте готовий шаблон, виправте блоки візуально, відредагуйте PHP/JS через вбудований файловий менеджер.</p>
+            </div>
+            <div class="audience-card">
+                <i data-lucide="trending-up" class="icon" width="32" height="32"></i>
+                <h3>Арбітражники</h3>
+                <p>Клонуйте зв'язки зі Spy-сервісів, перекладайте текст, змінюйте пікселі та трекінг-посилання за хвилини.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features-section fade-up" id="features">
+        <h2 class="section-title">Все, що вам потрібно</h2>
+        <p class="section-subtitle">Потужний інструментарій у зручній оболонці</p>
+        <div class="feat-grid">
+            <div class="feat-card">
+                <div class="feat-icon purple"><i data-lucide="file-archive" width="24" height="24"></i></div>
+                <h3>Імпорт ZIP-архівів</h3>
+                <p>Завантажуйте будь-який HTML-шаблон з усіма стилями, скриптами та зображеннями. Автоматична розпаковка.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon blue"><i data-lucide="mouse-pointer-click" width="24" height="24"></i></div>
+                <h3>Візуальне редагування</h3>
+                <p>Клікніть на текст — змінюйте. Клікніть на фото — замінюйте. WYSIWYG без будь-яких панелей.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon green"><i data-lucide="code-2" width="24" height="24"></i></div>
+                <h3>Raw HTML режим</h3>
+                <p>Повний контроль. Перемикайтеся в режим коду та редагуйте весь HTML, включаючи head та body.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon orange"><i data-lucide="folder-open" width="24" height="24"></i></div>
+                <h3>Файловий менеджер</h3>
+                <p>Редагуйте PHP, JS, CSS файли прямо в браузері. Бачте дерево проєкту як в IDE.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon pink"><i data-lucide="video" width="24" height="24"></i></div>
+                <h3>Редактор iFrame</h3>
+                <p>Вбудований редактор для YouTube, Vimeo та інших відео. Змінюйте src через зручну панель.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon cyan"><i data-lucide="terminal" width="24" height="24"></i></div>
+                <h3>Глобальні скрипти</h3>
+                <p>Додавайте свій JavaScript: TikTok Pixel, Facebook Pixel, Google Analytics та будь-який трекінг-код.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon yellow"><i data-lucide="undo-2" width="24" height="24"></i></div>
+                <h3>Undo / Redo</h3>
+                <p>Необмежена історія змін з автозбереженням. Ctrl+Z працює як в нативних редакторах.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon red"><i data-lucide="smartphone" width="24" height="24"></i></div>
+                <h3>Мобільна адаптація</h3>
+                <p>Перемикайтеся в мобільний режим одним кліком та перевіряйте, як виглядає сайт на смартфоні.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRICING -->
+    <section class="pricing fade-up" id="pricing">
+        <h2 class="section-title">Гнучкі тарифи</h2>
+        <p class="section-subtitle">Оберіть план, який підходить для ваших завдань</p>
+        <div class="pricing-grid">
+            <div class="price-card">
+                <h3>Free</h3>
+                <div class="price">0 грн<span>/міс</span></div>
+                <ul>
+                    <li><i data-lucide="check" width="18"></i> Редагування 1 проєкту</li>
+                    <li><i data-lucide="check" width="18"></i> Всі візуальні інструменти</li>
+                    <li><i data-lucide="check" width="18"></i> Імпорт ZIP архівів</li>
+                    <li style="opacity: 0.4;"><i data-lucide="x" width="18"></i> Експорт проєктів (заблоковано)</li>
+                </ul>
+                <a href="register.html" class="btn-price btn-outline">Почати безкоштовно</a>
+            </div>
+
+            <div class="price-card pro">
+                <h3>PRO</h3>
+                <div class="price">250 грн<span>/міс</span></div>
+                <ul>
+                    <li><i data-lucide="check" width="18"></i> Безлімітні проєкти</li>
+                    <li><i data-lucide="check" width="18"></i> Вивантаження в ZIP (Експорт)</li>
+                    <li><i data-lucide="check" width="18"></i> Шеринг проєктів з командою</li>
+                    <li><i data-lucide="check" width="18"></i> Пріоритетна підтримка (Telegram)</li>
+                </ul>
+                <a href="register.html" class="btn-price btn-solid">Оформити підписку</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section fade-up">
+        <h2>Готові запустити свій<br>перший лендінг?</h2>
+        <p>Перший проєкт — абсолютно безкоштовно. Без прив'язки карти.</p>
+        <a href="register.html" class="btn-primary">
+            <i data-lucide="zap" width="20" height="20"></i>
+            Створити проєкт зараз
+        </a>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-links">
+            <a href="#features">Можливості</a>
+            <a href="#pricing">Тарифи</a>
+            <a href="login.html">Увійти</a>
+            <a href="https://t.me/itvisualua" target="_blank">Telegram</a>
+        </div>
+        <div style="margin-bottom: 12px;">
+            <strong style="font-size: 18px; color: #fff;">ITVisual Platform</strong>
+        </div>
+        &copy; 2026 ITVisual. Всі права захищені.<br>
+        <div style="margin-top:15px; margin-bottom:10px;">
+            <a href="https://t.me/itvisualua" target="_blank" style="display:inline-flex; align-items:center; gap:6px; color:#0088cc; text-decoration:none; font-size:14px; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                Telegram-канал
+            </a>
+        </div>
+        <span style="color:#555;">Безпечні платежі через Monobank / Apple Pay.</span>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // Scroll animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+    </script>
+</body>
+
+</html>
