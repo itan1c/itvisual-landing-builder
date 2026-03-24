@@ -27,3 +27,10 @@ functions/api/payment/
 wrangler.toml
 .env
 .dev.vars
+
+# Core product IP (proprietary editor engine)
+js/editor.js
+js/dashboard.js
+editor.html
+dashboard.html
+admin.html
