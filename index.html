@@ -256,15 +256,59 @@
         }
         .fade-up.visible { opacity: 1; transform: translateY(0); }
 
-        @media (max-width: 768px) {
-            .hero h1 { font-size: 36px; }
-            .hero p { font-size: 16px; }
-            .steps-grid { grid-template-columns: 1fr; }
-            .stats { flex-direction: column; gap: 30px; }
-            .nav { padding: 16px 20px; }
-            .nav-links { gap: 16px; }
-            .feat-grid { grid-template-columns: 1fr; }
+        /* Hamburger */
+        .nav-toggle {
+            display: none; background: none; border: none; color: #fff; cursor: pointer;
+            padding: 8px; border-radius: 8px; transition: background 0.2s;
         }
+        .nav-toggle:hover { background: rgba(255,255,255,0.1); }
+
+        @media (max-width: 768px) {
+            .hero { padding: 80px 20px 60px; }
+            .hero h1 { font-size: 32px; letter-spacing: -1px; }
+            .hero p { font-size: 15px; }
+            .hero-buttons { flex-direction: column; align-items: stretch; gap: 12px; }
+            .btn-primary, .btn-secondary { justify-content: center; padding: 14px 24px; font-size: 15px; }
+            .steps-grid { grid-template-columns: 1fr; gap: 24px; }
+            .stats { flex-direction: column; gap: 20px; padding: 40px 20px; }
+            .nav { padding: 14px 20px; }
+            .nav-toggle { display: flex; }
+            .nav-links {
+                display: none; position: absolute; top: 100%; left: 0; right: 0;
+                flex-direction: column; background: rgba(11,12,16,0.97);
+                backdrop-filter: blur(16px); padding: 20px;
+                border-bottom: 1px solid rgba(255,255,255,0.05);
+                gap: 12px; z-index: 99;
+            }
+            .nav-links.open { display: flex; }
+            .nav-links a { font-size: 16px; padding: 8px 0; }
+            .nav-links .btn {
+                text-align: center; padding: 14px 20px; margin-top: 8px;
+                display: block; border-radius: 10px;
+            }
+            .feat-grid { grid-template-columns: 1fr; }
+            .pricing-grid { flex-direction: column; align-items: center; }
+            .price-card { width: 100%; max-width: 400px; }
+            .section-title { font-size: 28px; }
+            .section-subtitle { font-size: 15px; }
+            .how-it-works, .features-section { padding: 60px 20px; }
+            .audience { padding: 60px 20px; }
+            .cta-section h2 { font-size: 28px; }
+            footer { padding: 30px 20px; }
+            .footer-links { flex-direction: column; gap: 12px; }
+        }
+
+        /* Features expand */
+        .feat-grid .feat-card.extra { display: none; }
+        .feat-grid.expanded .feat-card.extra { display: block; }
+        .show-more-btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            margin: 32px auto 0; padding: 14px 32px;
+            background: rgba(102,126,234,0.1); border: 1px solid rgba(102,126,234,0.2);
+            border-radius: 12px; color: #667eea; font-size: 15px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s; font-family: 'Inter', sans-serif;
+        }
+        .show-more-btn:hover { background: rgba(102,126,234,0.18); transform: translateY(-2px); }
     </style>
 </head>
 
@@ -272,6 +316,9 @@
 
     <nav class="nav">
         <a href="index.html" class="logo">ITVisual</a>
+        <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Меню">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
         <div class="nav-links">
             <a href="#features">Можливості</a>
             <a href="#pricing">Тарифи</a>
@@ -366,7 +413,7 @@
     <section class="features-section fade-up" id="features">
         <h2 class="section-title">Все, що вам потрібно</h2>
         <p class="section-subtitle">Потужний інструментарій у зручній оболонці</p>
-        <div class="feat-grid">
+        <div class="feat-grid" id="feat-grid">
             <div class="feat-card">
                 <div class="feat-icon purple"><i data-lucide="file-archive" width="24" height="24"></i></div>
                 <h3>Імпорт ZIP-архівів</h3>
@@ -382,32 +429,40 @@
                 <h3>Raw HTML режим</h3>
                 <p>Повний контроль. Перемикайтеся в режим коду та редагуйте весь HTML, включаючи head та body.</p>
             </div>
-            <div class="feat-card">
+            <div class="feat-card extra">
                 <div class="feat-icon orange"><i data-lucide="folder-open" width="24" height="24"></i></div>
                 <h3>Файловий менеджер</h3>
                 <p>Редагуйте PHP, JS, CSS файли прямо в браузері. Бачте дерево проєкту як в IDE.</p>
             </div>
-            <div class="feat-card">
+            <div class="feat-card extra">
                 <div class="feat-icon pink"><i data-lucide="video" width="24" height="24"></i></div>
                 <h3>Редактор iFrame</h3>
                 <p>Вбудований редактор для YouTube, Vimeo та інших відео. Змінюйте src через зручну панель.</p>
             </div>
-            <div class="feat-card">
+            <div class="feat-card extra">
                 <div class="feat-icon cyan"><i data-lucide="terminal" width="24" height="24"></i></div>
                 <h3>Глобальні скрипти</h3>
                 <p>Додавайте свій JavaScript: TikTok Pixel, Facebook Pixel, Google Analytics та будь-який трекінг-код.</p>
             </div>
-            <div class="feat-card">
+            <div class="feat-card extra">
                 <div class="feat-icon yellow"><i data-lucide="undo-2" width="24" height="24"></i></div>
                 <h3>Undo / Redo</h3>
                 <p>Необмежена історія змін з автозбереженням. Ctrl+Z працює як в нативних редакторах.</p>
             </div>
-            <div class="feat-card">
+            <div class="feat-card extra">
                 <div class="feat-icon red"><i data-lucide="smartphone" width="24" height="24"></i></div>
                 <h3>Мобільна адаптація</h3>
                 <p>Перемикайтеся в мобільний режим одним кліком та перевіряйте, як виглядає сайт на смартфоні.</p>
             </div>
+            <div class="feat-card extra">
+                <div class="feat-icon" style="background:rgba(46,204,113,0.2);"><i data-lucide="plug" width="24" height="24"></i></div>
+                <h3>CRM Інтеграції</h3>
+                <p>Автоматична відправка лідів в SalesDrive, LP CRM, 7Leads. PHP-скрипти генеруються при експорті.</p>
+            </div>
         </div>
+        <button class="show-more-btn" id="show-more-features" onclick="toggleFeatures()">
+            Показати ще можливостей ↓
+        </button>
     </section>
 
     <!-- PRICING -->
@@ -485,6 +540,23 @@
         }, { threshold: 0.1 });
 
         document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+        // Features show more
+        function toggleFeatures() {
+            const grid = document.getElementById('feat-grid');
+            const btn = document.getElementById('show-more-features');
+            grid.classList.toggle('expanded');
+            btn.innerHTML = grid.classList.contains('expanded')
+                ? 'Згорнути ↑'
+                : 'Показати ще можливостей ↓';
+        }
+
+        // Close mobile nav on link click
+        document.querySelectorAll('.nav-links a').forEach(a => {
+            a.addEventListener('click', () => {
+                document.querySelector('.nav-links').classList.remove('open');
+            });
+        });
     </script>
 </body>
 
