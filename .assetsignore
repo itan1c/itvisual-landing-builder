@@ -1,0 +1,6 @@
+site-editor.rar
+node_modules/
+.wrangler/
+.claude/
+*.log
+patch*.py
