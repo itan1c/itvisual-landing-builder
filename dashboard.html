@@ -135,7 +135,7 @@
                 <a href="#projects-grid">Проєкти</a>
                 <a href="https://t.me/itvisualua" target="_blank">Telegram</a>
                 <button onclick="openStorageInfoModal()">Зберігання проєктів</button>
-                <button onclick="openChangelogModal()">📋 Changelog</button>
+                <button onclick="openChangelogModal()">Changelog</button>
                 <a href="#" onclick="logout()">Вийти</a>
             </div>
             <div style="margin-bottom: 12px;">
@@ -312,96 +312,83 @@
             </div>
 
             <!-- Tabs -->
-            <div class="tabs" id="create-tabs">
-                <button class="tab active" data-target="tab-templates">З шаблону</button>
+            <div class="tabs" id="create-tabs" style="margin-bottom:16px;">
+                <button class="tab active" data-target="tab-templates">З нуля</button>
+                <button class="tab" data-target="tab-library" style="display:flex;align-items:center;gap:5px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    Бібліотека
+                </button>
                 <button class="tab" data-target="tab-upload">Архів</button>
                 <button class="tab" data-target="tab-clone">Spy/URL</button>
             </div>
 
-            <!-- Templates tab -->
+            <!-- "З нуля" tab -->
             <div id="tab-templates">
-                <!-- Blank start -->
-                <div style="margin-bottom:16px;">
-                    <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#666;text-transform:uppercase;margin-bottom:10px;">Старт</div>
-                    <div class="template-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));">
-                        <label class="template-option selected" data-template="blank" style="cursor:pointer;">
-                            <input type="radio" name="template" value="blank" checked style="display:none;">
-                            <span class="template-icon" style="background:linear-gradient(135deg,#1d1d2b,#2a2a3e);border-radius:8px;width:100%;height:70px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
-                            </span>
-                            <div class="template-name">Порожній</div>
-                            <div class="template-desc">Почати з нуля</div>
-                        </label>
-                    </div>
+                <div class="template-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));">
+                    <label class="template-option selected" data-template="blank" style="cursor:pointer;">
+                        <input type="radio" name="template" value="blank" checked style="display:none;">
+                        <span style="background:linear-gradient(135deg,#1d1d2b,#2a2a3e);border-radius:8px;width:100%;height:80px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+                        </span>
+                        <div class="template-name">Порожній</div>
+                        <div class="template-desc">Почати з нуля</div>
+                    </label>
                 </div>
+            </div>
 
-                <!-- Landing library -->
-                <div>
-                    <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#667eea;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                        Бібліотека лендів (10 шаблонів)
+            <!-- Library tab -->
+            <div id="tab-library" style="display:none;">
+                <style>
+                .lib-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; max-height:380px; overflow-y:auto; padding:4px 2px; }
+                .lib-card { border-radius:10px; border:2px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.03); cursor:pointer; overflow:hidden; transition:border-color 0.15s, transform 0.15s; }
+                .lib-card:hover { border-color:rgba(102,126,234,0.5); transform:translateY(-2px); }
+                .lib-card.selected { border-color:#667eea; box-shadow:0 0 0 2px rgba(102,126,234,0.3); }
+                .lib-card-preview { width:100%; height:130px; overflow:hidden; position:relative; background:#1a1a2e; }
+                .lib-card-preview iframe { width:960px; height:700px; transform:scale(0.1875); transform-origin:0 0; pointer-events:none; border:none; }
+                .lib-card-info { padding:8px 10px 10px; }
+                .lib-card-name { font-size:0.82rem; font-weight:700; color:#fff; margin-bottom:3px; }
+                .lib-card-desc { font-size:0.72rem; color:#888; line-height:1.4; }
+                </style>
+                <div class="lib-grid" id="lib-grid">
+                    <div class="lib-card" data-template="land-tool-wrench">
+                        <div class="lib-card-preview"><iframe data-src="templates/land-tool-wrench.html" sandbox="allow-same-origin allow-scripts"></iframe></div>
+                        <div class="lib-card-info"><div class="lib-card-name">Гайковерт</div><div class="lib-card-desc">Інструмент · hero + форма</div></div>
                     </div>
-                    <div class="template-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));max-height:280px;overflow-y:auto;padding-right:4px;">
-                        <label class="template-option" data-template="land-tool-wrench" style="cursor:pointer;">
-                            <input type="radio" name="template" value="land-tool-wrench" style="display:none;">
-                            <div style="background:linear-gradient(135deg,#667eea,#764ba2);border-radius:8px;width:100%;height:70px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:26px;">🔧</div>
-                            <div class="template-name">Гайковерт</div>
-                            <div class="template-desc">Інструмент, hero + форма</div>
-                        </label>
-                        <label class="template-option" data-template="land-tool-set" style="cursor:pointer;">
-                            <input type="radio" name="template" value="land-tool-set" style="display:none;">
-                            <div style="background:linear-gradient(135deg,#4facfe,#00f2fe);border-radius:8px;width:100%;height:70px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:26px;">🧰</div>
-                            <div class="template-name">Набір (3 в 1)</div>
-                            <div class="template-desc">Набір + переваги + форма</div>
-                        </label>
-                        <label class="template-option" data-template="land-tool-4in1" style="cursor:pointer;">
-                            <input type="radio" name="template" value="land-tool-4in1" style="display:none;">
-                            <div style="background:linear-gradient(135deg,#43e97b,#38f9d7);border-radius:8px;width:100%;height:70px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:26px;">🛠️</div>
-                            <div class="template-name">Набір 4 в 1</div>
-                            <div class="template-desc">4в1 + характеристики</div>
-                        </label>
-                        <label class="template-option" data-template="land-nut-driver" style="cursor:pointer;">
-                            <input type="radio" name="template" value="land-nut-driver" style="display:none;">
-                            <div style="background:linear-gradient(135deg,#fa709a,#fee140);border-radius:8px;width:100%;height:70px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:26px;">⚙️</div>
-                            <div class="template-name">Гайковерт (2)</div>
-                            <div class="template-desc">Альтернативний лейаут</div>
-                        </label>
-                        <label class="template-option" data-template="land-makita-4in1" style="cursor:pointer;">
-                            <input type="radio" name="template" value="land-makita-4in1" style="display:none;">
-                            <div style="background:linear-gradient(135deg,#f093fb,#f5576c);border-radius:8px;width:100%;height:70px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:26px;">🔩</div>
-                            <div class="template-name">Makita 4в1</div>
-                            <div class="template-desc">Брендовий інструмент</div>
-                        </label>
-                        <label class="template-option" data-template="land-sewing-machine" style="cursor:pointer;">
-                            <input type="radio" name="template" value="land-sewing-machine" style="display:none;">
-                            <div style="background:linear-gradient(135deg,#a18cd1,#fbc2eb);border-radius:8px;width:100%;height:70px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:26px;">🧵</div>
-                            <div class="template-name">Швейна машинка</div>
-                            <div class="template-desc">12в1 + відео-секція</div>
-                        </label>
-                        <label class="template-option" data-template="land-sewing-machine-2" style="cursor:pointer;">
-                            <input type="radio" name="template" value="land-sewing-machine-2" style="display:none;">
-                            <div style="background:linear-gradient(135deg,#0c3483,#a2b6df);border-radius:8px;width:100%;height:70px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:26px;">✂️</div>
-                            <div class="template-name">Швейна (2)</div>
-                            <div class="template-desc">Альтернативний стиль</div>
-                        </label>
-                        <label class="template-option" data-template="land-adapters" style="cursor:pointer;">
-                            <input type="radio" name="template" value="land-adapters" style="display:none;">
-                            <div style="background:linear-gradient(135deg,#ff9a9e,#fecfef);border-radius:8px;width:100%;height:70px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:26px;">🔌</div>
-                            <div class="template-name">Перехідники</div>
-                            <div class="template-desc">Компактний товар</div>
-                        </label>
-                        <label class="template-option" data-template="land-car-starter" style="cursor:pointer;">
-                            <input type="radio" name="template" value="land-car-starter" style="display:none;">
-                            <div style="background:linear-gradient(135deg,#f77062,#fe5196);border-radius:8px;width:100%;height:70px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:26px;">🔋</div>
-                            <div class="template-name">Пуско-зарядний</div>
-                            <div class="template-desc">Авто-аксесуар</div>
-                        </label>
-                        <label class="template-option" data-template="land-jumpstart" style="cursor:pointer;">
-                            <input type="radio" name="template" value="land-jumpstart" style="display:none;">
-                            <div style="background:linear-gradient(135deg,#30cfd0,#667eea);border-radius:8px;width:100%;height:70px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:26px;">⚡</div>
-                            <div class="template-name">Jump Starter</div>
-                            <div class="template-desc">Пускова + блок переваг</div>
-                        </label>
+                    <div class="lib-card" data-template="land-tool-set">
+                        <div class="lib-card-preview"><iframe data-src="templates/land-tool-set.html" sandbox="allow-same-origin allow-scripts"></iframe></div>
+                        <div class="lib-card-info"><div class="lib-card-name">Набір 3 в 1</div><div class="lib-card-desc">Набір · переваги + форма</div></div>
+                    </div>
+                    <div class="lib-card" data-template="land-tool-4in1">
+                        <div class="lib-card-preview"><iframe data-src="templates/land-tool-4in1.html" sandbox="allow-same-origin allow-scripts"></iframe></div>
+                        <div class="lib-card-info"><div class="lib-card-name">Набір 4 в 1</div><div class="lib-card-desc">4в1 · характеристики</div></div>
+                    </div>
+                    <div class="lib-card" data-template="land-nut-driver">
+                        <div class="lib-card-preview"><iframe data-src="templates/land-nut-driver.html" sandbox="allow-same-origin allow-scripts"></iframe></div>
+                        <div class="lib-card-info"><div class="lib-card-name">Гайковерт (2)</div><div class="lib-card-desc">Альтернативний лейаут</div></div>
+                    </div>
+                    <div class="lib-card" data-template="land-makita-4in1">
+                        <div class="lib-card-preview"><iframe data-src="templates/land-makita-4in1.html" sandbox="allow-same-origin allow-scripts"></iframe></div>
+                        <div class="lib-card-info"><div class="lib-card-name">Brand 4в1</div><div class="lib-card-desc">Брендований набір</div></div>
+                    </div>
+                    <div class="lib-card" data-template="land-sewing-machine">
+                        <div class="lib-card-preview"><iframe data-src="templates/land-sewing-machine.html" sandbox="allow-same-origin allow-scripts"></iframe></div>
+                        <div class="lib-card-info"><div class="lib-card-name">Швейна 12в1</div><div class="lib-card-desc">Машинка · відео-секція</div></div>
+                    </div>
+                    <div class="lib-card" data-template="land-sewing-machine-2">
+                        <div class="lib-card-preview"><iframe data-src="templates/land-sewing-machine-2.html" sandbox="allow-same-origin allow-scripts"></iframe></div>
+                        <div class="lib-card-info"><div class="lib-card-name">Швейна (2)</div><div class="lib-card-desc">Альтернативний стиль</div></div>
+                    </div>
+                    <div class="lib-card" data-template="land-adapters">
+                        <div class="lib-card-preview"><iframe data-src="templates/land-adapters.html" sandbox="allow-same-origin allow-scripts"></iframe></div>
+                        <div class="lib-card-info"><div class="lib-card-name">Перехідники</div><div class="lib-card-desc">Компактний товар</div></div>
+                    </div>
+                    <div class="lib-card" data-template="land-car-starter">
+                        <div class="lib-card-preview"><iframe data-src="templates/land-car-starter.html" sandbox="allow-same-origin allow-scripts"></iframe></div>
+                        <div class="lib-card-info"><div class="lib-card-name">Пуско-зарядний</div><div class="lib-card-desc">Авто-аксесуар</div></div>
+                    </div>
+                    <div class="lib-card" data-template="land-jumpstart">
+                        <div class="lib-card-preview"><iframe data-src="templates/land-jumpstart.html" sandbox="allow-same-origin allow-scripts"></iframe></div>
+                        <div class="lib-card-info"><div class="lib-card-name">Jump Starter</div><div class="lib-card-desc">Пускова · блок переваг</div></div>
                     </div>
                 </div>
             </div>
@@ -415,7 +402,7 @@
                         <polyline points="17 8 12 3 7 8" />
                         <line x1="12" x2="12" y1="3" y2="15" />
                     </svg>
-                    <div class="upload-icon">📁</div>
+                    <div class="upload-icon"></div>
                     <div style="font-weight:600; font-size:1.1rem; margin-bottom:8px;"
                         data-i18n="Перетягніть HTML або ZIP файл сюди">Перетягніть HTML або ZIP файл сюди</div>
                     <div style="font-size:0.9rem; color:#aaa; margin-bottom:12px;"

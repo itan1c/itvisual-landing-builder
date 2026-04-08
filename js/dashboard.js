@@ -841,31 +841,47 @@ window.selectCRM = function(crm) {
 };
 
 // ---- TAB SWITCH ----
+const CREATE_TABS = ['tab-templates', 'tab-library', 'tab-upload', 'tab-clone'];
+
 function switchTab(targetId) {
-    if (!targetId) return; // ignore tabs without target to avoid conflict with crm tabs
+    if (!targetId) return;
     document.querySelectorAll('.tab').forEach(t => {
         if (t.dataset.target) {
             t.classList.toggle('active', t.dataset.target === targetId);
         }
     });
-    const templates = document.getElementById('tab-templates');
-    const upload = document.getElementById('tab-upload');
-    const cloneTab = document.getElementById('tab-clone');
-    if (templates) templates.style.display = targetId === 'tab-templates' ? '' : 'none';
-    if (upload) upload.style.display = targetId === 'tab-upload' ? '' : 'none';
-    if (cloneTab) cloneTab.style.display = targetId === 'tab-clone' ? '' : 'none';
+    CREATE_TABS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = targetId === id ? '' : 'none';
+    });
+    // Lazy-load library iframes when tab opens
+    if (targetId === 'tab-library') {
+        document.querySelectorAll('.lib-card iframe[data-src]').forEach(iframe => {
+            iframe.src = iframe.dataset.src;
+            delete iframe.dataset.src;
+        });
+    }
 }
 
 // ---- INIT ----
 document.addEventListener('DOMContentLoaded', () => {
     renderProjects();
 
-    // Template selection
+    // Template selection (blank / simple cards)
     document.querySelectorAll('.template-option').forEach(opt => {
         opt.addEventListener('click', () => {
             selectedTemplate = opt.dataset.template;
             document.querySelectorAll('.template-option').forEach(o => o.classList.remove('selected'));
             opt.classList.add('selected');
+        });
+    });
+
+    // Library card selection
+    document.querySelectorAll('.lib-card').forEach(card => {
+        card.addEventListener('click', () => {
+            selectedTemplate = card.dataset.template;
+            document.querySelectorAll('.lib-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
         });
     });
 
