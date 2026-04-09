@@ -488,6 +488,18 @@ body {
 .fm-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
 .fm-btn-danger:hover { background: rgba(245,87,108,0.15); color: var(--danger); }
 
+.fm-item-tpl { opacity: 0.55; }
+.fm-item-tpl:hover { opacity: 0.75; }
+.fm-tpl-badge {
+    font-size: 0.6rem;
+    background: rgba(255,255,255,0.06);
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
 /* Legacy classes (keep for block list) */
 .file-item {
     display: flex;

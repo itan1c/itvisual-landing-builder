@@ -49,14 +49,32 @@ function init() {
         if (data.html) state.project.html = data.html;
         if (data.files) state.project.files = data.files;
       }
+      seedTemplateFiles(state.project.html);
       loadHTML(state.project.html || '<html><body><h2>Помилка завантаження кешу з браузера</h2></body></html>');
     }).catch(e => {
       console.error(e);
       loadHTML('<html><body><h2>Помилка завантаження кешу з браузера</h2></body></html>');
     });
   } else {
+    seedTemplateFiles(state.project.html);
     loadHTML(state.project.html || '<html><body><h2>Пустий проект</h2></body></html>');
   }
+}
+
+// Populate state.project.files with paths referenced in the template HTML
+// so the file manager shows something meaningful from the start.
+// Values are null = "template asset" (served as static file, no stored data).
+function seedTemplateFiles(html) {
+  if (!html) return;
+  if (!state.project.files) state.project.files = {};
+  const matches = html.match(/src="((?:img|js|css)\/[^"]+)"/g) || [];
+  matches.forEach(m => {
+    const path = m.slice(5, -1); // strip src=" and "
+    if (!(path in state.project.files)) {
+      state.project.files[path] = null; // null = template asset
+    }
+  });
+}
 }
 
 
@@ -1918,36 +1936,39 @@ function createFileItem(path, depth) {
   const isCode  = /\.(js|css|html?|json|php|txt|xml|md)$/i.test(path);
   const filename = path.split('/').pop();
   const data = state.project.files[path];
-  const sizeStr = getFileSize(data);
+  const isTemplateAsset = data === null; // seeded from template, no stored data
+  const sizeStr = isTemplateAsset ? '' : getFileSize(data);
 
   const div = document.createElement('div');
-  div.className = 'fm-item' + (depth ? ' fm-item-nested' : '');
+  div.className = 'fm-item' + (depth ? ' fm-item-nested' : '') + (isTemplateAsset ? ' fm-item-tpl' : '');
   div.dataset.path = path;
 
-  // Thumbnail for images (base64 or url)
+  // Thumbnail for images (base64 stored data only)
   let thumbHtml = '';
-  if (isImage && data) {
+  if (isImage && data && !isTemplateAsset) {
     const ext = path.split('.').pop().toLowerCase();
     const mime = ext === 'svg' ? 'image/svg+xml' : ext === 'webp' ? 'image/webp' : ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
     const src = data.startsWith('data:') ? data : `data:${mime};base64,${data}`;
     thumbHtml = `<img class="fm-thumb" src="${src}" alt="" loading="lazy">`;
   }
 
+  const tplBadge = isTemplateAsset ? `<span class="fm-tpl-badge">шаблон</span>` : '';
   div.innerHTML = `
     <span class="fm-item-icon">${getFileIcon(path)}</span>
     ${thumbHtml}
     <span class="fm-item-name" title="${path}">${filename}</span>
+    ${tplBadge}
     <span class="fm-item-size">${sizeStr}</span>
     <span class="fm-item-actions">
-      ${isCode ? `<button class="fm-btn" data-action="open" title="Відкрити">
+      ${isCode && !isTemplateAsset ? `<button class="fm-btn" data-action="open" title="Відкрити">
         <svg viewBox="0 0 16 16" fill="none"><path d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.2"/></svg>
       </button>` : ''}
-      ${isImage ? `<button class="fm-btn" data-action="preview" title="Перегляд">
+      ${isImage && !isTemplateAsset ? `<button class="fm-btn" data-action="preview" title="Перегляд">
         <svg viewBox="0 0 16 16" fill="none"><path d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.2"/></svg>
       </button>` : ''}
-      <button class="fm-btn fm-btn-danger" data-action="delete" title="Видалити">
+      ${!isTemplateAsset ? `<button class="fm-btn fm-btn-danger" data-action="delete" title="Видалити">
         <svg viewBox="0 0 16 16" fill="none"><polyline points="3 4 13 4" stroke="currentColor" stroke-width="1.2"/><path d="M6 4V2h4v2" stroke="currentColor" stroke-width="1.2"/><path d="M5 4l.5 9h5L11 4" stroke="currentColor" stroke-width="1.2"/></svg>
-      </button>
+      </button>` : ''}
     </span>`;
 
   // Action handlers
