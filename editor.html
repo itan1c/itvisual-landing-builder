@@ -7,6 +7,8 @@
     <title>Редактор</title>
     <link rel="icon" type="image/png" href="img/logo.png">
     <link rel="stylesheet" href="css/editor.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
     
     <!-- CodeMirror for advanced code editing -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
@@ -41,9 +43,21 @@
 
     <!-- TOOLBAR -->
     <div class="toolbar">
-        <a href="dashboard.html" class="toolbar-logo" id="btn-back" title="На головну"
-            style="display:flex; align-items:center; text-decoration:none; color:white; font-size:18px; font-weight:800; letter-spacing:-0.5px;">
-            ITVisual
+        <a href="dashboard.html" class="toolbar-logo" id="btn-back" title="На головну">
+            <svg width="26" height="26" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0; filter:drop-shadow(0 0 6px rgba(108,126,255,0.4))">
+                <defs>
+                    <linearGradient id="emg" x1="0" y1="0" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="#6c7eff"/>
+                        <stop offset="100%" stop-color="#ea6fff"/>
+                    </linearGradient>
+                </defs>
+                <rect width="30" height="30" rx="8" fill="url(#emg)"/>
+                <rect x="6" y="7" width="18" height="4" rx="2" fill="white"/>
+                <rect x="6" y="14" width="11" height="2.5" rx="1.25" fill="white" opacity="0.65"/>
+                <rect x="6" y="19.5" width="7" height="2.5" rx="1.25" fill="white" opacity="0.35"/>
+                <circle cx="22.5" cy="20.75" r="3" fill="white" opacity="0.9"/>
+            </svg>
+            <span style="font-family:'Space Grotesk','Inter',sans-serif; font-size:1rem; font-weight:700; letter-spacing:-0.3px; color:white; margin-left:8px;"><span style="background:linear-gradient(120deg,#6c7eff,#ea6fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">IT</span>Visual</span>
         </a>
 
         <button class="tbtn" id="btn-undo" title="Отменить (Ctrl+Z)">

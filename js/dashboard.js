@@ -91,7 +91,7 @@ function initPaymentListeners() {
                     currentUser.plan = 'PRO';
                     localStorage.setItem('ve_user', JSON.stringify(currentUser));
                     document.getElementById('payment-modal')?.classList.remove('open');
-                    showToast('🎉 PRO активовано!', 'success');
+                    showToast('PRO активовано!', 'success');
                     setTimeout(() => location.reload(), 2000);
                 } else {
                     if (err) {
@@ -219,7 +219,11 @@ function renderProjects() {
     const createCard = document.createElement('div');
     createCard.className = 'create-card';
     createCard.innerHTML = `
-    <div class="create-card-icon">+</div>
+    <div class="create-card-icon">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+    </div>
     <div class="create-card-label">Створити лендінг</div>
     <div style="font-size:0.8rem;color:var(--text-muted)">З шаблону або свого файлу</div>
   `;
