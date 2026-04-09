@@ -64,6 +64,11 @@ function init() {
 // HTML LOADING
 // ============================================================
 function loadHTML(html) {
+  // Inject base href so relative image paths (img/...) resolve correctly
+  // when template is loaded via srcdoc (base URL would be editor.html otherwise)
+  if (!/<base\b/i.test(html)) {
+    html = html.replace(/(<head[^>]*>)/i, '$1\n<base href="/templates/" data-editor-injected="1">');
+  }
   iframe.addEventListener('load', onIframeLoad, { once: true });
   iframe.srcdoc = html;
 }
@@ -134,13 +139,13 @@ function injectEditorListeners() {
     }
   });
 
-  // Double-click to edit text in any mode
+  // Double-click to edit text in any mode — place cursor at click point
   iDoc.addEventListener('dblclick', e => {
     e.preventDefault();
     const t = resolveTarget(e.target);
     if (!t) return;
     selectEl(t);
-    enableTextEdit(t);
+    enableTextEdit(t, e);
   });
 }
 
@@ -224,19 +229,46 @@ function toggleMobile() {
 // ============================================================
 // TEXT EDITING
 // ============================================================
-function enableTextEdit(el) {
-  const TEXT_TAGS = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'P', 'SPAN', 'A', 'BUTTON', 'LI', 'LABEL', 'TD', 'TH'];
+function enableTextEdit(el, clickEvent) {
+  const TEXT_TAGS = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'P', 'SPAN', 'A', 'BUTTON', 'LI', 'LABEL', 'TD', 'TH', 'DIV'];
+  // For DIV — only edit if it has direct text content (not purely a container of other blocks)
   if (!TEXT_TAGS.includes(el.tagName)) return;
+  if (el.tagName === 'DIV' && el.children.length > 3) return;
 
   el.contentEditable = 'true';
   el.focus();
 
-  const range = getIDoc().createRange();
-  range.selectNodeContents(el);
-  range.collapse(false);
-  const sel = getIWin().getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
+  // Place cursor at click position if possible, else end of content
+  const iWin = getIWin();
+  let placed = false;
+  if (clickEvent && iWin.document.caretRangeFromPoint) {
+    const r = iWin.document.caretRangeFromPoint(clickEvent.clientX, clickEvent.clientY);
+    if (r) {
+      const sel = iWin.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+      placed = true;
+    }
+  } else if (clickEvent && iWin.document.caretPositionFromPoint) {
+    const pos = iWin.document.caretPositionFromPoint(clickEvent.clientX, clickEvent.clientY);
+    if (pos) {
+      const range = iWin.document.createRange();
+      range.setStart(pos.offsetNode, pos.offset);
+      range.collapse(true);
+      const sel = iWin.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      placed = true;
+    }
+  }
+  if (!placed) {
+    const range = getIDoc().createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = iWin.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
 
   el.addEventListener('blur', () => {
     el.contentEditable = 'false';
@@ -323,11 +355,22 @@ function triggerImageReplace() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = e => {
-      img.src = e.target.result;
+      const dataUrl = e.target.result;
+      // Store file in project files so it shows in file manager
+      const safeName = 'img/' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      if (!state.project.files) state.project.files = {};
+      // Store as base64 (strip data: prefix for storage)
+      const b64 = dataUrl.split(',')[1] || dataUrl;
+      state.project.files[safeName] = b64;
+      img.src = dataUrl;
       state.isDirty = true;
       saveSnapshot();
       renderRightPanel(img);
-      showToast('Зображення замінено');
+      // Refresh file list if visible
+      if (document.getElementById('file-list')?.style.display !== 'none') {
+        if (typeof renderFileList === 'function') renderFileList();
+      }
+      showToast('Фото замінено ✓', 'success');
     };
     reader.readAsDataURL(file);
   };
@@ -1142,7 +1185,7 @@ window.applyPixel = applyPixel;
 window.openSeoModal = function() {
   const iDoc = getIDoc();
   if (!iDoc) return;
-  
+
   const titleTag = iDoc.querySelector('title');
   const descTag = iDoc.querySelector('meta[name="description"]');
   const favTag = iDoc.querySelector('link[rel="icon"]') || iDoc.querySelector('link[rel="shortcut icon"]');
@@ -1150,10 +1193,48 @@ window.openSeoModal = function() {
 
   document.getElementById('seo-title-input').value = titleTag ? titleTag.textContent : '';
   document.getElementById('seo-desc-input').value = descTag ? (descTag.getAttribute('content') || '') : '';
-  document.getElementById('seo-favicon-input').value = favTag ? (favTag.getAttribute('href') || '') : '';
-  document.getElementById('seo-ogimage-input').value = ogImgTag ? (ogImgTag.getAttribute('content') || '') : '';
-  
+
+  // Favicon preview
+  const favHref = favTag ? (favTag.getAttribute('href') || '') : '';
+  document.getElementById('seo-favicon-input').value = favHref;
+  const favPrev = document.getElementById('seo-favicon-preview');
+  if (favHref) { favPrev.src = favHref; favPrev.style.display = 'block'; } else { favPrev.style.display = 'none'; }
+
+  // OG image preview
+  const ogHref = ogImgTag ? (ogImgTag.getAttribute('content') || '') : '';
+  document.getElementById('seo-ogimage-input').value = ogHref;
+  const ogPrev = document.getElementById('seo-ogimage-preview');
+  if (ogHref) { ogPrev.src = ogHref; ogPrev.style.display = 'block'; } else { ogPrev.style.display = 'none'; }
+
   document.getElementById('seo-modal').classList.add('open');
+};
+
+window.seoUploadImage = function(type) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = type === 'favicon' ? 'image/*,.ico' : 'image/*';
+  input.onchange = () => {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      const fieldId = type === 'favicon' ? 'seo-favicon-input' : 'seo-ogimage-input';
+      const prevId = type === 'favicon' ? 'seo-favicon-preview' : 'seo-ogimage-preview';
+      document.getElementById(fieldId).value = dataUrl;
+      const prev = document.getElementById(prevId);
+      prev.src = dataUrl;
+      prev.style.display = 'block';
+      // Save file in project files
+      if (state.project) {
+        if (!state.project.files) state.project.files = {};
+        const fname = type === 'favicon' ? ('favicon.' + (file.name.split('.').pop() || 'png')) : ('og-image.' + (file.name.split('.').pop() || 'jpg'));
+        state.project.files[fname] = dataUrl.split(',')[1] || dataUrl;
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
 };
 
 window.applySeo = function() {
@@ -1261,6 +1342,9 @@ function restoreSnapshot(html) {
     deselectAll();
     updateUndoRedoBtns();
   }, { once: true });
+  if (!/<base\b/i.test(html)) {
+    html = html.replace(/(<head[^>]*>)/i, '$1\n<base href="/templates/" data-editor-injected="1">');
+  }
   iframe.srcdoc = html;
 }
 
@@ -1296,6 +1380,7 @@ async function exportHTML() {
   // Clean editor artifacts
   const clone = iDoc.documentElement.cloneNode(true);
   clone.querySelector('#__editor-style__')?.remove();
+  clone.querySelector('base[data-editor-injected]')?.remove();
   clone.querySelectorAll('.__sel,.__hov').forEach(el => el.classList.remove('__sel', '__hov'));
   clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
 
@@ -1664,6 +1749,7 @@ function autoSaveProject(quiet = false) {
   if (!iDoc) return;
   const clone = iDoc.documentElement.cloneNode(true);
   clone.querySelector('#__editor-style__')?.remove();
+  clone.querySelector('base[data-editor-injected]')?.remove();
   clone.querySelectorAll('.__sel,.__hov').forEach(el => el.classList.remove('__sel', '__hov'));
   clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
   const html = '<!DOCTYPE html>\n' + clone.outerHTML;
@@ -1708,11 +1794,11 @@ function autoSaveProject(quiet = false) {
     })
     .then(res => {
         if (!res.ok) throw new Error('API error');
-        if (!quiet) showToast('Збережено ✓', 'success');
+        if (!quiet) showToast('Збережено онлайн ✓', 'success');
     })
     .catch(e => {
         console.error(e);
-        if (!quiet) showToast('Помилка сервера. Збережено локально', 'error');
+        if (!quiet) showToast('Збережено локально (сервер недоступний)', 'warning');
     });
   } else {
     if (!quiet) showToast('Збережено локально ✓', 'success');
@@ -1737,109 +1823,171 @@ window.switchSidebarTab = function(tab) {
   }
 };
 
+// ── File type helpers ──────────────────────────────────────────────────────
+const FILE_ICONS = {
+  js:   `<svg viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="2" fill="#f0db4f"/><text x="2" y="13" font-size="9" font-weight="bold" fill="#323330" font-family="monospace">JS</text></svg>`,
+  css:  `<svg viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="2" fill="#264de4"/><text x="1" y="13" font-size="8" font-weight="bold" fill="#fff" font-family="monospace">CSS</text></svg>`,
+  html: `<svg viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="2" fill="#e34c26"/><text x="1" y="13" font-size="7" font-weight="bold" fill="#fff" font-family="monospace">HTML</text></svg>`,
+  json: `<svg viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="2" fill="#5c2d91"/><text x="1" y="13" font-size="7" font-weight="bold" fill="#fff" font-family="monospace">JSON</text></svg>`,
+  img:  `<svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="14" rx="2" fill="none" stroke="#4F9BFF" stroke-width="1.2"/><circle cx="5.5" cy="5.5" r="1.5" fill="#4F9BFF"/><path d="M1 11 5 7l3 3 2-2 4 4H1z" fill="#4F9BFF" opacity=".7"/></svg>`,
+  doc:  `<svg viewBox="0 0 16 16" fill="none"><path d="M3 1h7l4 4v10H3V1z" fill="none" stroke="#8888aa" stroke-width="1.2"/><path d="M10 1v4h4" fill="none" stroke="#8888aa" stroke-width="1.2"/><line x1="5" y1="8" x2="11" y2="8" stroke="#8888aa" stroke-width="1.2"/><line x1="5" y1="11" x2="9" y2="11" stroke="#8888aa" stroke-width="1.2"/></svg>`,
+};
+function getFileIcon(path) {
+  const ext = path.split('.').pop().toLowerCase();
+  if (/^(png|jpe?g|gif|webp|svg|ico)$/.test(ext)) return FILE_ICONS.img;
+  if (ext === 'js')   return FILE_ICONS.js;
+  if (ext === 'css')  return FILE_ICONS.css;
+  if (/html?/.test(ext)) return FILE_ICONS.html;
+  if (ext === 'json') return FILE_ICONS.json;
+  return FILE_ICONS.doc;
+}
+function getFileSize(data) {
+  if (!data) return '';
+  const bytes = typeof data === 'string' ? Math.round(data.length * 0.75) : data.length;
+  if (bytes < 1024) return bytes + 'B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + 'KB';
+  return (bytes/(1024*1024)).toFixed(1) + 'MB';
+}
+
 window.renderFileList = function() {
   const container = document.getElementById('file-list');
   container.innerHTML = '';
   if (!state.project || !state.project.files) {
-    container.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">Нет файлов проекта</div>';
+    container.innerHTML = '<div class="fm-empty">Файлів немає — завантажте через кнопку вище</div>';
     return;
   }
 
   const filesObj = state.project.files;
   const paths = Object.keys(filesObj).sort();
-  
+  if (!paths.length) {
+    container.innerHTML = '<div class="fm-empty">Файлів немає — завантажте через кнопку вище</div>';
+    return;
+  }
+
+  // Build folder tree: { '/': [...root files...], 'img': [...], 'js': [...] }
   const tree = {};
   paths.forEach(p => {
-    const parts = p.split('/');
-    if (parts.length === 1) {
-      if (!tree['/']) tree['/'] = [];
-      tree['/'].push(p);
-    } else {
-      const folder = parts[0];
-      if (!tree[folder]) tree[folder] = [];
-      tree[folder].push(p);
-    }
+    const slash = p.indexOf('/');
+    const folder = slash === -1 ? '/' : p.substring(0, slash);
+    if (!tree[folder]) tree[folder] = [];
+    tree[folder].push(p);
   });
 
+  // Root-level files first
   if (tree['/']) {
-    tree['/'].forEach(p => {
-      container.appendChild(createFileItem(p));
-    });
+    tree['/'].forEach(p => container.appendChild(createFileItem(p, 0)));
   }
-  
-  Object.keys(tree).forEach(folder => {
-    if (folder === '/') return;
-    
-    const wrapper = document.createElement('div');
-    wrapper.style.marginBottom = '2px';
-    
-    const fDiv = document.createElement('div');
-    fDiv.className = 'file-folder';
-    fDiv.style.cursor = 'pointer';
-    fDiv.style.display = 'flex';
-    fDiv.style.alignItems = 'center';
-    fDiv.style.userSelect = 'none';
-    
-    const chevron = document.createElement('span');
-    chevron.innerHTML = '▶';
-    chevron.style.fontSize = '9px';
-    chevron.style.marginRight = '8px';
-    chevron.style.transition = 'transform 0.2s';
-    chevron.style.opacity = '0.6';
-    
-    const label = document.createElement('span');
-    label.textContent = '📁 ' + folder;
-    
-    fDiv.appendChild(chevron);
-    fDiv.appendChild(label);
-    
-    const childrenContainer = document.createElement('div');
-    childrenContainer.style.display = 'none';
-    childrenContainer.style.flexDirection = 'column';
-    childrenContainer.style.paddingLeft = '4px';
-    
-    tree[folder].forEach(p => {
-      const item = createFileItem(p);
-      item.style.paddingLeft = '24px';
-      childrenContainer.appendChild(item);
+
+  // Folders sorted
+  Object.keys(tree).filter(f => f !== '/').sort().forEach(folder => {
+    const files = tree[folder];
+
+    // Folder row
+    const fRow = document.createElement('div');
+    fRow.className = 'fm-folder';
+
+    const chevronSvg = `<svg class="fm-chevron" viewBox="0 0 16 16" fill="none"><polyline points="5 4 11 8 5 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const folderSvg = `<svg class="fm-folder-icon" viewBox="0 0 16 16" fill="none"><path d="M1 4h5l1.5 2H15v8H1V4z" fill="#4F9BFF" opacity=".25" stroke="#4F9BFF" stroke-width="1.2"/></svg>`;
+    const count = files.length;
+    fRow.innerHTML = `${chevronSvg}${folderSvg}<span class="fm-folder-name">${folder}</span><span class="fm-folder-count">${count}</span>`;
+
+    // Children container
+    const children = document.createElement('div');
+    children.className = 'fm-children';
+
+    files.forEach(p => children.appendChild(createFileItem(p, 1)));
+
+    // Toggle
+    let open = true; // folders open by default
+    children.classList.add('open');
+    fRow.querySelector('.fm-chevron').style.transform = 'rotate(90deg)';
+
+    fRow.addEventListener('click', () => {
+      open = !open;
+      children.classList.toggle('open', open);
+      fRow.querySelector('.fm-chevron').style.transform = open ? 'rotate(90deg)' : '';
     });
-    
-    fDiv.onclick = () => {
-      const isExpanded = childrenContainer.style.display !== 'none';
-      childrenContainer.style.display = isExpanded ? 'none' : 'flex';
-      chevron.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(90deg)';
-      fDiv.style.opacity = isExpanded ? '1' : '0.8';
-    };
-    
-    wrapper.appendChild(fDiv);
-    wrapper.appendChild(childrenContainer);
-    container.appendChild(wrapper);
+
+    container.appendChild(fRow);
+    container.appendChild(children);
   });
 };
 
-function createFileItem(path) {
+function createFileItem(path, depth) {
   const isImage = /\.(png|jpe?g|gif|webp|svg|ico)$/i.test(path);
-  const isCode = /\.(js|css|php|json|md|xml|txt|html?)$/i.test(path);
-  const div = document.createElement('div');
-  div.className = 'file-item';
-  let icon = '📄';
-  if (isImage) icon = '🖼️';
-  else if (path.endsWith('.js')) icon = '📜';
-  else if (path.endsWith('.css')) icon = '🎨';
-  else if (path.endsWith('.php')) icon = '🐘';
-  
+  const isCode  = /\.(js|css|html?|json|php|txt|xml|md)$/i.test(path);
   const filename = path.split('/').pop();
-  div.innerHTML = `<span class="file-item-icon">${icon}</span> <span title="${path}">${filename}</span>`;
-  
-  div.onclick = () => {
-    if (isImage) {
-      showToast('Предпросмотр картинок доступен только в экспорте', 'info');
+  const data = state.project.files[path];
+  const sizeStr = getFileSize(data);
+
+  const div = document.createElement('div');
+  div.className = 'fm-item' + (depth ? ' fm-item-nested' : '');
+  div.dataset.path = path;
+
+  // Thumbnail for images (base64 or url)
+  let thumbHtml = '';
+  if (isImage && data) {
+    const ext = path.split('.').pop().toLowerCase();
+    const mime = ext === 'svg' ? 'image/svg+xml' : ext === 'webp' ? 'image/webp' : ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
+    const src = data.startsWith('data:') ? data : `data:${mime};base64,${data}`;
+    thumbHtml = `<img class="fm-thumb" src="${src}" alt="" loading="lazy">`;
+  }
+
+  div.innerHTML = `
+    <span class="fm-item-icon">${getFileIcon(path)}</span>
+    ${thumbHtml}
+    <span class="fm-item-name" title="${path}">${filename}</span>
+    <span class="fm-item-size">${sizeStr}</span>
+    <span class="fm-item-actions">
+      ${isCode ? `<button class="fm-btn" data-action="open" title="Відкрити">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.2"/></svg>
+      </button>` : ''}
+      ${isImage ? `<button class="fm-btn" data-action="preview" title="Перегляд">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.2"/></svg>
+      </button>` : ''}
+      <button class="fm-btn fm-btn-danger" data-action="delete" title="Видалити">
+        <svg viewBox="0 0 16 16" fill="none"><polyline points="3 4 13 4" stroke="currentColor" stroke-width="1.2"/><path d="M6 4V2h4v2" stroke="currentColor" stroke-width="1.2"/><path d="M5 4l.5 9h5L11 4" stroke="currentColor" stroke-width="1.2"/></svg>
+      </button>
+    </span>`;
+
+  // Action handlers
+  div.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) {
+      // Row click → open if code, preview if image
+      if (isCode) openFileEditor(path);
+      else if (isImage) fmPreviewImage(path, data);
       return;
     }
-    if (isCode) openFileEditor(path);
-    else showToast('Файл нельзя открыть');
-  };
+    e.stopPropagation();
+    const action = btn.dataset.action;
+    if (action === 'open')    openFileEditor(path);
+    if (action === 'preview') fmPreviewImage(path, data);
+    if (action === 'delete') {
+      if (!confirm(`Видалити ${filename}?`)) return;
+      delete state.project.files[path];
+      renderFileList();
+      showToast('Файл видалено');
+    }
+  });
+
   return div;
+}
+
+function fmPreviewImage(path, data) {
+  const existing = document.getElementById('fm-preview-modal');
+  if (existing) existing.remove();
+  const ext = path.split('.').pop().toLowerCase();
+  const mime = ext === 'svg' ? 'image/svg+xml' : ext === 'webp' ? 'image/webp' : ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
+  const src = data && !data.startsWith('data:') ? `data:${mime};base64,${data}` : (data || '');
+  const modal = document.createElement('div');
+  modal.id = 'fm-preview-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;flex-direction:column;gap:12px;';
+  modal.innerHTML = `
+    <img src="${src}" style="max-width:90vw;max-height:85vh;border-radius:8px;box-shadow:0 0 60px rgba(0,0,0,.8);object-fit:contain;">
+    <div style="color:#fff;opacity:0.6;font-size:0.8rem;">${path} &nbsp;·&nbsp; натисніть для закриття</div>`;
+  modal.onclick = () => modal.remove();
+  document.body.appendChild(modal);
 }
 
 window.openGlobalCodeEditor = function() {
@@ -1884,6 +2032,7 @@ window.openGlobalCodeEditor = function() {
 };
 
 let cmEditor = null;
+let cmSearchState = { cursor: null, matches: [], index: 0, query: '' };
 
 function initCodeEditor(val, mode) {
   const ta = document.getElementById('code-editor-textarea');
@@ -1892,19 +2041,156 @@ function initCodeEditor(val, mode) {
       lineNumbers: true,
       mode: mode || "htmlmixed",
       theme: "dracula",
-      lineWrapping: true,
+      lineWrapping: false,
+      tabSize: 2,
+      indentWithTabs: false,
+      autofocus: true,
+      highlightSelectionMatches: { showToken: /\w/, annotateScrollbar: true },
       extraKeys: {
-        "F11": function(cm) { cm.setOption("fullScreen", !cm.getOption("fullScreen")); },
-        "Esc": function(cm) { if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false); }
+        "F11": cm => cm.setOption("fullScreen", !cm.getOption("fullScreen")),
+        "Esc": cm => {
+          if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false);
+          else closeCmSearch();
+        },
+        "Ctrl-F": () => toggleCmSearch(true),
+        "Cmd-F":  () => toggleCmSearch(true),
+        "F3":     () => cmFindNext(),
+        "Shift-F3": () => cmFindPrev(),
+        "Ctrl-H": () => toggleCmSearch(true),
+        "Ctrl-G": cm => { cm.execCommand('jumpToLine'); },
       }
     });
-    const titleObj = document.getElementById('code-editor-title');
-    titleObj.innerHTML += ' <span style="font-size:12px; font-weight:normal; color:#aaa; margin-left:10px;">(F11 - На весь екран, Ctrl+F - Пошук)</span>';
+
+    // Style the CM wrapper
+    const cmWrap = cmEditor.getWrapperElement();
+    cmWrap.style.height = '100%';
+    cmWrap.style.fontSize = '13px';
+    cmWrap.style.fontFamily = "'JetBrains Mono', 'Fira Code', 'Consolas', monospace";
   }
   cmEditor.setOption("mode", mode || "htmlmixed");
   cmEditor.setValue(val);
-  setTimeout(() => cmEditor.refresh(), 100);
+  cmSearchState = { cursor: null, matches: [], index: 0, query: '' };
+  document.getElementById('cm-search-count').textContent = '0 / 0';
+  setTimeout(() => { cmEditor.refresh(); cmEditor.focus(); }, 80);
 }
+
+// --- Search bar ---
+window.toggleCmSearch = function(forceOpen) {
+  const bar = document.getElementById('cm-search-bar');
+  const open = forceOpen || bar.style.display === 'none' || bar.style.display === '';
+  bar.style.display = open ? 'flex' : 'none';
+  if (open) {
+    const inp = document.getElementById('cm-search-input');
+    // Pre-fill with selected text
+    const sel = cmEditor ? cmEditor.getSelection() : '';
+    if (sel && sel.length < 100) inp.value = sel;
+    inp.focus();
+    inp.select();
+    if (inp.value) cmSearchQuery();
+  } else {
+    // Clear highlights
+    if (cmEditor) cmEditor.operation(() => {
+      cmEditor.getAllMarks().forEach(m => { try { if (m.__cmSearch) m.clear(); } catch(e){} });
+    });
+    cmEditor?.focus();
+  }
+};
+
+function closeCmSearch() {
+  document.getElementById('cm-search-bar').style.display = 'none';
+  cmEditor?.focus();
+}
+
+window.cmSearchKey = function(e) {
+  if (e.key === 'Enter') { e.shiftKey ? cmFindPrev() : cmFindNext(); e.preventDefault(); }
+  if (e.key === 'Escape') closeCmSearch();
+};
+window.cmReplaceKey = function(e) {
+  if (e.key === 'Enter') { cmReplaceOne(); e.preventDefault(); }
+  if (e.key === 'Escape') closeCmSearch();
+};
+
+window.cmSearchQuery = function() {
+  if (!cmEditor) return;
+  const q = document.getElementById('cm-search-input').value;
+  cmSearchState.query = q;
+  cmSearchState.matches = [];
+  cmSearchState.index = 0;
+
+  // Clear old highlights
+  cmEditor.getAllMarks().forEach(m => { try { if (m.__cmSearch) m.clear(); } catch(e){} });
+
+  if (!q) {
+    document.getElementById('cm-search-count').textContent = '0 / 0';
+    return;
+  }
+
+  const cursor = cmEditor.getSearchCursor(q, CodeMirror.Pos(0,0), { caseFold: true });
+  while (cursor.findNext()) {
+    const mark = cmEditor.markText(cursor.from(), cursor.to(), {
+      className: 'cm-search-match',
+      title: 'match'
+    });
+    mark.__cmSearch = true;
+    cmSearchState.matches.push({ from: cursor.from(), to: cursor.to() });
+  }
+
+  const count = cmSearchState.matches.length;
+  document.getElementById('cm-search-count').textContent = count > 0 ? `1 / ${count}` : 'Не знайдено';
+  if (count > 0) {
+    cmSearchState.index = 0;
+    cmJumpToMatch(0);
+  }
+};
+
+function cmJumpToMatch(idx) {
+  const matches = cmSearchState.matches;
+  if (!matches.length) return;
+  const m = matches[idx];
+  cmEditor.setSelection(m.from, m.to);
+  cmEditor.scrollIntoView({ from: m.from, to: m.to }, 100);
+  document.getElementById('cm-search-count').textContent = `${idx + 1} / ${matches.length}`;
+}
+
+window.cmFindNext = function() {
+  const matches = cmSearchState.matches;
+  if (!matches.length) { cmSearchQuery(); return; }
+  cmSearchState.index = (cmSearchState.index + 1) % matches.length;
+  cmJumpToMatch(cmSearchState.index);
+};
+
+window.cmFindPrev = function() {
+  const matches = cmSearchState.matches;
+  if (!matches.length) return;
+  cmSearchState.index = (cmSearchState.index - 1 + matches.length) % matches.length;
+  cmJumpToMatch(cmSearchState.index);
+};
+
+window.cmReplaceOne = function() {
+  if (!cmEditor || !cmSearchState.matches.length) return;
+  const rep = document.getElementById('cm-replace-input').value;
+  const m = cmSearchState.matches[cmSearchState.index];
+  cmEditor.replaceRange(rep, m.from, m.to);
+  cmSearchQuery(); // re-scan
+};
+
+window.cmReplaceAll = function() {
+  if (!cmEditor) return;
+  const q = document.getElementById('cm-search-input').value;
+  const rep = document.getElementById('cm-replace-input').value;
+  if (!q) return;
+  const cursor = cmEditor.getSearchCursor(q, CodeMirror.Pos(0,0), { caseFold: true });
+  let count = 0;
+  cmEditor.operation(() => {
+    while (cursor.findNext()) { cursor.replace(rep); count++; }
+  });
+  showToast(`Замінено ${count} входжень`, 'success');
+  cmSearchQuery();
+};
+
+window.cmEditorFullscreen = function() {
+  if (cmEditor) cmEditor.setOption("fullScreen", !cmEditor.getOption("fullScreen"));
+};
 
 window.openFileEditor = function(path) {
   const content = state.project.files[path] || '';
@@ -2563,3 +2849,57 @@ function applyUniqualization(clone, outFiles) {
   }
 }
 
+
+// ============================================================
+// PANEL COLLAPSE / EXPAND
+// ============================================================
+window.toggleLeftSidebar = function() {
+  const sidebar = document.getElementById('left-sidebar');
+  const btn = document.getElementById('btn-toggle-left');
+  const collapsed = sidebar.classList.toggle('collapsed');
+  btn.classList.toggle('collapsed', collapsed);
+};
+
+window.toggleRightSidebar = function() {
+  const panel = document.getElementById('right-panel');
+  const btn = document.getElementById('btn-toggle-right');
+  const collapsed = panel.classList.toggle('collapsed');
+  btn.classList.toggle('collapsed', collapsed);
+};
+
+// ============================================================
+// FILE UPLOAD BUTTON (in file manager header)
+// ============================================================
+window.triggerFileUpload = function() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.multiple = true;
+  input.accept = 'image/*,.js,.css,.html,.json,.svg,.ico,.woff,.woff2,.ttf,.eot,.webp';
+  input.onchange = () => {
+    if (!state.project) return;
+    if (!state.project.files) state.project.files = {};
+    let count = 0;
+    Array.from(input.files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const isText = /\.(html|css|js|json|svg|txt)$/i.test(file.name);
+        if (isText) {
+          state.project.files[safeName] = e.target.result;
+        } else {
+          // binary — store base64
+          state.project.files[safeName] = (e.target.result + '').split(',')[1] || e.target.result;
+        }
+        count++;
+        if (count === input.files.length) {
+          if (typeof renderFileList === 'function') renderFileList();
+          showToast(`Завантажено ${count} файл(ів) ✓`, 'success');
+          state.isDirty = true;
+          scheduleAutoSave();
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+  input.click();
+};
