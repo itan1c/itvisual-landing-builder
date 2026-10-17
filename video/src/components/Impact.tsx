@@ -10,7 +10,7 @@ export const Impact: React.FC<{ chunk: Chunk; t: number; x: number; y: number; s
   if (t < chunk.s - 0.03 || outP >= 1) return null;
   const wob = Math.sin((t - chunk.s) * 14) * 2.5 * Math.exp(-(t - chunk.s) * 3);
   const color = wordColor(chunk.w[0]);
-  const text = chunk.w.filter((w) => w.st === "big").map((w) => w.t).join(" ").toUpperCase().replace(/[.,]/g, "");
+  const text = chunk.w.map((w) => w.t).join(" ").toUpperCase().replace(/[.,]/g, "");
   const n = text.length; const fs = Math.min(size, maxWidth / (0.72 * n));
   const r = rng(Math.floor(chunk.s * 10));
   const burstR = fs * 1.9;

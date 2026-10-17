@@ -72,7 +72,7 @@ export const Discord: React.FC = () => {
               const ap = springT(t - (E.ants_in + i * 0.08), { stiffness: 220, damping: 13 });
               return (
                 <div key={i} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, width: 150, transform: `scale(${clamp(ap, 0, 1.1)})` }}>
-                  {yell && <div style={{ position: "absolute", top: -58, left: "50%", transform: `translateX(-50%) scale(${inP * (1 - outP)})`, transformOrigin: "50% 100%", background: "#fff", color: "#1b1407", fontFamily: F.display, fontWeight: 900, fontSize: 20, padding: "5px 10px", borderRadius: 10, whiteSpace: "nowrap", border: "3px solid #1a1a1a" }}>{yell.txt}<div style={{ position: "absolute", left: "50%", bottom: -11, marginLeft: -8, width: 0, height: 0, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "10px solid #1a1a1a" }} /></div>}
+                  {false && yell && <div style={{ position: "absolute", top: -58, left: "50%", transform: `translateX(-50%) scale(${inP * (1 - outP)})`, transformOrigin: "50% 100%", background: "#fff", color: "#1b1407", fontFamily: F.display, fontWeight: 900, fontSize: 20, padding: "5px 10px", borderRadius: 10, whiteSpace: "nowrap", border: "3px solid #1a1a1a" }}>{yell.txt}<div style={{ position: "absolute", left: "50%", bottom: -11, marginLeft: -8, width: 0, height: 0, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "10px solid #1a1a1a" }} /></div>}
                   <div style={{ position: "relative", transform: `scale(${1 + loud * 0.1 * (0.6 + 0.4 * Math.sin(t * 30))})` }}>
                     <div style={{ position: "absolute", inset: -6, borderRadius: "50%", border: `4px solid ${K.green}`, opacity: loud ? 1 : 0.18, boxShadow: loud ? "0 0 20px rgba(88,214,141,0.7)" : "none" }} />
                     <AntFace size={96} bg={COLORS[i]} mouth={loud ? 0.6 + 0.4 * Math.abs(Math.sin(t * 25 + i)) : 0.05} angry={loud ? 1 : 0.5} />
@@ -99,13 +99,11 @@ export const Discord: React.FC = () => {
           <div style={{ background: "#d33b3b", padding: "12px 24px", fontFamily: F.display, fontWeight: 900, fontSize: 28, color: "#fff", textTransform: "uppercase" }}>Весь видос</div>
         </div>
       )}
-      {/* flying yells on ОРУТ */}
-      {t >= E.orut && t < E.orut + 1.6 && !cut && ["ТЫ ЧЁ?!", "НЕ Я!!", "АЛЁ!", "СКАМ!"].map((txt, i) => { const d = i * 0.14; const age = t - E.orut - d; if (age < 0) return null; const k = clamp(age / 1.2, 0, 1); const x = lerp(1010, 700 + i * 25, k), y = lerp(430, 300 + i * 85, k); return <div key={i} style={{ position: "absolute", left: x, top: y, transform: `translate(-50%,-50%) rotate(${(i % 2 ? 1 : -1) * 8 * (1 - k)}deg) scale(${springT(age, { stiffness: 300, damping: 12 })})`, opacity: 1 - prog(t, E.orut + d + 1.1, 0.25, easeInCubic), background: "#fff", border: "4px solid #111", borderRadius: 14, padding: "10px 22px", fontFamily: F.display, fontWeight: 900, fontSize: 32, color: "#111", whiteSpace: "nowrap", boxShadow: "5px 6px 0 #111" }}>{txt}</div>; })}
       {/* music off label */}
       {cut && <div style={{ position: "absolute", right: 120, top: 80, fontFamily: F.display, fontWeight: 900, fontSize: 40, color: "#8b8c96", textTransform: "uppercase", opacity: clamp(offP, 0, 1), transform: `translateY(${lerp(-20, 0, offP)}px)` }}>♪ выкл</div>}
       {/* stacked captions */}
       <Stack chunks={lineChunks} t={t} left={960} width={900} top={430} size={82} />
-      {impact && <Impact chunk={impact} t={t} x={1410} y={impact.s >= PANEL_IN - 0.3 && impact.s < E.music_cut ? 525 : 340} size={190} maxWidth={820} />}
+      {impact && <Impact chunk={impact} t={t} x={1410} y={520} size={190} maxWidth={820} />}
       {/* anger marks near the head */}
       {angryOn && !cut && <svg width="120" height="120" style={{ position: "absolute", left: 600, top: 400, transform: `scale(${0.9 + 0.1 * Math.sin(t * 20)}) rotate(${Math.sin(t * 9) * 6}deg)` }}><g stroke={K.red} strokeWidth="10" strokeLinecap="round" fill="none"><path d="M30 30 q20 14 0 40 M60 20 q20 14 0 40 M20 70 q20 14 0 40 M60 60 q20 14 0 40" /></g></svg>}
       {/* grawlix rain on the final word */}
