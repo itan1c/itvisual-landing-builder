@@ -25,7 +25,7 @@ const Hand: React.FC<{ kind: "fist" | "point" | "open" }> = ({ kind }) => (
   </g>
 );
 /** Big cartoon "sticker" bust with thick white outline, moods and gestures. viewBox 0 0 600 640 (bottom is meant to be cropped). */
-export const Sticker: React.FC<{ t: number; mouth: number; mood?: Mood; gestures?: Gesture[]; look?: number; width?: number; id?: string }> = ({ t, mouth, mood = { brow: -0.2, smile: 0, squint: 0 }, gestures = [], look = 0.2, width = 600, id = "st" }) => {
+export const Sticker: React.FC<{ t: number; mouth: number; mood?: Mood; gestures?: Gesture[]; look?: number; width?: number; id?: string }> = ({ t, mouth, mood = { brow: -0.4, smile: 0, squint: 0 }, gestures = [], look = 0.2, width = 600, id = "st" }) => {
   const breathe = Math.sin(t * 1.15) * 4; const tilt = Math.sin(t * 0.47) * 1.8;
   const bl = (t + 1.1) % 3.4; let blink = bl < 0.14 ? Math.sin((bl / 0.14) * Math.PI) : 0;
   const m = clamp(mouth, 0, 1);
@@ -84,27 +84,28 @@ export const Sticker: React.FC<{ t: number; mouth: number; mood?: Mood; gestures
           {/* short curly hair with bumpy hairline + sideburns */}
           <path d="M142 176 C142 60 215 22 300 22 C385 22 458 60 458 176 C450 156 440 146 428 144 C420 130 408 124 396 128 C386 114 372 110 360 116 C348 104 332 102 320 110 C308 100 292 100 280 110 C268 102 252 104 240 116 C228 110 214 114 204 128 C192 124 180 130 172 144 C160 146 150 156 142 176 Z" fill={HAIR} />
           <path d="M140 176 L140 262 L172 262 L172 186 Z M460 176 L460 262 L428 262 L428 186 Z" fill={HAIR} />
-          {/* eyes */}
-          <ellipse cx="243" cy="214" rx={eyeRx * 0.9} ry={eyeRy * 0.9} fill="#fff" />
-          <ellipse cx="357" cy="214" rx={eyeRx * 0.9} ry={eyeRy * 0.9} fill="#fff" />
-          <circle cx={248 + px} cy={220} r={Math.min(17, eyeRy * 0.45)} fill={INK} stroke="none" />
-          <circle cx={362 + px} cy={220} r={Math.min(17, eyeRy * 0.45)} fill={INK} stroke="none" />
-          <circle cx={242 + px} cy={209} r={Math.min(5.5, eyeRy * 0.18)} fill="#fff" stroke="none" />
-          <circle cx={356 + px} cy={209} r={Math.min(5.5, eyeRy * 0.18)} fill="#fff" stroke="none" />
-          {/* brows: thick, close */}
-          <path d={`M194 ${150 - browY + angry * 4} Q 243 ${124 - browY - (1 - angry) * 6} 290 ${146 - browY + angry * 26}`} fill="none" stroke={INK} strokeWidth={17} />
-          <path d={`M406 ${150 - browY + angry * 4} Q 357 ${124 - browY - (1 - angry) * 6} 310 ${146 - browY + angry * 26}`} fill="none" stroke={INK} strokeWidth={17} />
-          {/* nose: wider */}
-          <path d="M300 230 L280 290 Q300 306 320 290 Z" fill={SKIN_D} strokeWidth={5} />
-          {/* full beard along the jaw + connected mustache */}
-          <path d="M142 262 C150 346 210 428 300 428 C390 428 450 346 458 262 L428 262 C418 326 370 360 300 360 C230 360 182 326 172 262 Z" fill="#1f1512" />
-          <path d="M232 302 Q300 282 368 302 L360 322 Q300 306 240 322 Z" fill="#1f1512" />
-          {/* mouth */}
-          <g transform="translate(300 352)">
-            <path d={`M-22 ${2 - smile * 6} Q 0 ${4 + smile * 12} 22 ${2 - smile * 6}`} fill="none" strokeWidth={6} opacity={m < 0.12 ? 1 : 0} />
-            <ellipse cx="0" cy={6 + m * 16} rx={26 + m * 10} ry={3 + m * 28} fill="#3a0f12" strokeWidth={5} opacity={m >= 0.12 ? 1 : 0} />
-            <rect x={-20} y={-2 + m * 2} width={40} height={Math.max(0.5, m * 12)} rx="4" fill="#fff" stroke="none" opacity={m > 0.14 ? 1 : 0} />
-            <ellipse cx="0" cy={16 + m * 30} rx={16} ry={m * 11} fill="#e0566b" stroke="none" opacity={m > 0.3 ? 1 : 0} />
+          {/* eyes: medium, heavy upper lids = serious look */}
+          {[243, 357].map((cx, i) => { const rx = eyeRx * 0.82, ry = eyeRy * 0.8, cy = 216; return (
+            <g key={i}>
+              <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="#fff" />
+              <circle cx={cx + 4 + px} cy={cy + 6} r={Math.min(19, ry * 0.5)} fill={INK} stroke="none" />
+              <circle cx={cx - 2 + px} cy={cy - 2} r={Math.min(5, ry * 0.16)} fill="#fff" stroke="none" />
+              <path d={`M${cx - rx} ${cy} A${rx} ${ry} 0 0 1 ${cx + rx} ${cy} Q ${cx} ${cy - ry * 0.5} ${cx - rx} ${cy} Z`} fill={SKIN} strokeWidth={5} />
+            </g>); })}
+          {/* brows: heavy, low, slightly furrowed by default */}
+          <path d={`M192 ${146 - browY + angry * 2} Q 243 ${134 - browY - (1 - angry) * 8} 290 ${150 - browY + angry * 22}`} fill="none" stroke={INK} strokeWidth={18} />
+          <path d={`M408 ${146 - browY + angry * 2} Q 357 ${134 - browY - (1 - angry) * 8} 310 ${150 - browY + angry * 22}`} fill="none" stroke={INK} strokeWidth={18} />
+          {/* nose */}
+          <path d="M300 232 L282 290 Q300 304 318 290 Z" fill={SKIN_D} strokeWidth={5} />
+          {/* trimmed beard along the jaw + goatee + mustache */}
+          <path d="M172 262 C180 350 230 428 300 428 C370 428 420 350 428 262 L404 262 C398 318 362 374 300 374 C238 374 202 318 196 262 Z" fill="#1f1512" />
+          <path d="M246 306 Q300 290 354 306 L348 322 Q300 310 252 322 Z" fill="#1f1512" />
+          {/* mouth: restrained */}
+          <g transform="translate(300 348)">
+            <path d={`M-20 ${2 - smile * 5} Q 0 ${3 + smile * 9} 20 ${2 - smile * 5}`} fill="none" strokeWidth={6} opacity={m < 0.12 ? 1 : 0} />
+            <ellipse cx="0" cy={4 + m * 9} rx={22 + m * 6} ry={3 + m * 15} fill="#3a0f12" strokeWidth={5} opacity={m >= 0.12 ? 1 : 0} />
+            <rect x={-16} y={-1 + m * 2} width={32} height={Math.max(0.5, m * 8)} rx="3" fill="#fff" stroke="none" opacity={m > 0.14 ? 1 : 0} />
+            <ellipse cx="0" cy={10 + m * 16} rx={12} ry={m * 7} fill="#e0566b" stroke="none" opacity={m > 0.35 ? 1 : 0} />
           </g>
           {/* sweat drop */}
           <path d="M432 150 C442 170 448 180 448 190 A16 16 0 0 1 416 190 C416 180 422 170 432 150 Z" fill="#7cc5ff" strokeWidth={4} opacity={sweat} transform={`translate(0 ${Math.sin(t * 3) * 3})`} />
