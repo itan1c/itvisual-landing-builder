@@ -1,26 +1,44 @@
 import React from "react";
 import { F } from "../lib/fonts";
 import { clamp, easeInCubic, lerp, prog, springT } from "../lib/util";
-import { C, Chunk } from "./Captions";
-/** Centered kinetic typography: each chunk replaces the previous, words spring in one by one, fast exit. */
-export const Kinetic: React.FC<{ chunks: Chunk[]; t: number; left: number; right: number; top?: number; bottom?: number; base?: number; big?: number; finalAccent?: boolean; shiftX?: number; redFirst?: boolean }> = ({ chunks, t, left, right, top = 0, bottom = 0, base = 96, big = 150, finalAccent = false, shiftX = 0, redFirst = true }) => {
+import { Chunk } from "./Captions";
+export const K = { yellow: "#f7c948", red: "#ff4d4d", green: "#58d68d", white: "#ffffff", grey: "#6c6c6c" };
+const OVERRIDE: Record<string, string> = { "РАЗМУТИЛСЯ": K.green, "ДИСКОРДЕ": K.yellow, "ОРУТ": K.red, "МАТЕРИТЬСЯ": K.red, "ПИЗДЕЦ": K.white, "МУРАВЬЯМИ": K.yellow, "ЕГИПТЯНЕ": K.yellow };
+export const wordColor = (w: { t: string; st: string }) => { const u = w.t.toUpperCase().replace(/[.,!?]/g, ""); if (OVERRIDE[u]) return OVERRIDE[u]; if (w.st === "big") return K.yellow; if (w.st === "dim") return K.red; return K.white; };
+/** Centered kinetic typography (used in the desert clip): each chunk replaces the previous, words spring in one by one, fast exit. */
+export const Kinetic: React.FC<{ chunks: Chunk[]; t: number; left: number; right: number; top?: number; bottom?: number; base?: number; big?: number; shiftX?: number }> = ({ chunks, t, left, right, top = 0, bottom = 0, base = 96, big = 150, shiftX = 0 }) => {
   const EXIT = 0.14; let idx = -1; for (let i = 0; i < chunks.length; i++) if (t >= chunks[i].s - 0.03) idx = i;
   if (idx < 0) return null; const cur = chunks[idx]; if (t >= cur.e + EXIT) return null;
   const nextStart = chunks[idx + 1]?.s ?? 1e9; const outAt = Math.min(cur.e + 0.02, nextStart - 0.05);
   const outP = t > outAt ? prog(t, outAt, EXIT, easeInCubic) : 0;
-  const isBig = cur.w.some((w) => w.st === "big"); const final = finalAccent && idx === chunks.length - 1;
-  const size = isBig ? big : base;
-  const red = redFirst && cur.w[0].t.startsWith("ПИ*");
-  const drift = final ? 1 + 0.05 * clamp((t - cur.s) / 2.5, 0, 1) : 1;
+  const isBig = cur.w.some((w) => w.st === "big"); const size = isBig ? big : base;
   return (
-    <div style={{ position: "absolute", left, right, top, bottom, display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: `0 ${size * 0.3}px`, alignContent: "center", opacity: 1 - outP, transform: `translateX(${shiftX}px) scale(${(1 - 0.08 * outP) * drift})`, fontFamily: F.display, fontWeight: 900, lineHeight: 1.05, textAlign: "center" }}>
+    <div style={{ position: "absolute", left, right, top, bottom, display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: `0 ${size * 0.28}px`, alignContent: "center", opacity: 1 - outP, transform: `translateX(${shiftX}px) scale(${1 - 0.08 * outP})`, fontFamily: F.display, fontWeight: 900, lineHeight: 1.05, textAlign: "center", textTransform: "uppercase" }}>
       {cur.w.map((w, i) => {
         const p = springT(t - (w.s - 0.03), { stiffness: isBig ? 230 : 300, damping: isBig ? 11 : 15 }); const on = t >= w.s - 0.03;
-        const fs = w.st === "big" ? size : w.st === "dim" ? size * 0.62 : size;
-        const color = w.st === "big" ? (red ? C.red : C.accent) : w.st === "dim" ? C.dim : "#fff4e3";
-        const shadow = w.st === "big" ? (red ? "0 4px 0 #7a1a24, 0 8px 0 #3a0c12, 0 20px 40px rgba(0,0,0,0.5)" : "0 4px 0 #a85f12, 0 8px 0 #5a3010, 0 30px 60px rgba(0,0,0,0.5)") : "0 3px 0 #2a2230, 0 6px 0 #140f18, 0 18px 36px rgba(0,0,0,0.55)";
-        return <span key={i} style={{ display: "inline-block", fontSize: fs, color, textShadow: shadow, opacity: on ? clamp(p * 1.5, 0, 1) : 0, transform: `translateY(${lerp(40, 0, p)}px) scale(${lerp(0.7, 1, p)}) rotate(${lerp(i % 2 ? 4 : -4, 0, p)}deg)`, letterSpacing: w.st === "big" ? "-0.01em" : "0", whiteSpace: "nowrap", marginBottom: 8 }}>{w.t}</span>;
+        const fs = w.st === "big" ? size : w.st === "dim" ? size * 0.7 : size; const color = wordColor(w);
+        const shadow = "0 4px 0 #1b1420, 0 8px 0 #0d0a10, 0 18px 36px rgba(0,0,0,0.55)";
+        return <span key={i} style={{ display: "inline-block", fontSize: fs, color, textShadow: shadow, opacity: on ? clamp(p * 1.5, 0, 1) : 0, transform: `translateY(${lerp(40, 0, p)}px) scale(${lerp(0.7, 1, p)}) rotate(${lerp(i % 2 ? 4 : -4, 0, p)}deg)`, whiteSpace: "nowrap", marginBottom: 6 }}>{w.t}</span>;
       })}
     </div>
+  );
+};
+/** Right-side stacked captions (sticker clip): current chunk in a bottom-anchored slot, previous chunk slides down below it in grey. Slots never overlap. */
+export const Stack: React.FC<{ chunks: Chunk[]; t: number; left: number; width: number; slotBottom: number; prevTop: number; size?: number }> = ({ chunks, t, left, width, slotBottom, prevTop, size = 84 }) => {
+  let idx = -1; for (let i = 0; i < chunks.length; i++) if (t >= chunks[i].s - 0.03) idx = i;
+  if (idx < 0) return null; const cur = chunks[idx]; const prev = chunks[idx - 1];
+  const p = springT(t - (cur.s - 0.03), { stiffness: 420, damping: 30 });
+  const fsFor = (c: Chunk) => { const n = c.w.reduce((a, w) => a + w.t.length + 1, 0); const big = c.w.some((w) => w.st === "big"); return big ? size * 1.45 : n > 30 ? size * 0.74 : n > 20 ? size * 0.86 : size; };
+  const line = (c: Chunk, fs: number, animate: boolean, color?: string) => (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: `0 ${fs * 0.26}px`, fontFamily: F.display, fontWeight: 900, fontSize: fs, lineHeight: 1.06, textTransform: "uppercase", letterSpacing: "-0.005em" }}>
+      {c.w.map((w, i) => { const wp = animate ? springT(t - (w.s - 0.03), { stiffness: 320, damping: 16 }) : 1; const on = !animate || t >= w.s - 0.03; return <span key={i} style={{ display: "inline-block", color: color ?? wordColor(w), opacity: on ? clamp(wp * 1.6, 0, 1) : 0, transform: `translateY(${lerp(26, 0, wp)}px) scale(${lerp(0.75, 1, wp)})`, textShadow: "0 3px 0 #000, 0 10px 24px rgba(0,0,0,0.6)", whiteSpace: "nowrap", marginBottom: 2 }}>{w.t}</span>; })}
+    </div>
+  );
+  const gone = t >= cur.e + 0.9 && idx === chunks.length - 1 ? prog(t, cur.e + 0.9, 0.4, easeInCubic) : 0;
+  return (
+    <>
+      <div style={{ position: "absolute", left, width, top: 0, height: slotBottom, display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "flex-start", opacity: 1 - gone }}>{line(cur, fsFor(cur), true)}</div>
+      {prev && <div style={{ position: "absolute", left, width, top: prevTop, transformOrigin: "0 0", transform: `translateY(${lerp(-150, 0, p)}px) scale(${lerp(1, 0.74, p)})`, opacity: lerp(0.6, 0.5, p) * (1 - gone) }}>{line(prev, fsFor(prev), false, K.grey)}</div>}
+    </>
   );
 };

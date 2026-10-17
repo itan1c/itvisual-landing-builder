@@ -6,7 +6,7 @@ import env from "../data/clip1_env.json";
 import { F } from "../lib/fonts";
 import { clamp, easeInCubic, easeOutBack, lerp, prog, rng, springT } from "../lib/util";
 import { Grain } from "../components/Grain";
-import { Avatar, Gesture, Mood } from "../components/Avatar";
+import { Sticker, Gesture, Mood } from "../components/Sticker";
 import { Ant } from "../components/Ant";
 import { C, Chunk } from "../components/Captions";
 import { Kinetic } from "../components/Kinetic";
@@ -131,9 +131,9 @@ export const Desert: React.FC = () => {
   </g>);
   // title etc
   const titleExit = prog(t, E.exit, 0.35, easeInCubic); const tagP = springT(t - E.tag_in, { stiffness: 210, damping: 11 }); const tagOp = clamp((t - E.tag_in) * 12, 0, 1); const titleBump = 1 + 0.05 * Math.sin(Math.PI * prog(t, E.tag_in, 0.35, (x) => x));
-  const avP = springT(t - E.avatar_in, { stiffness: 150, damping: 14 }); const avExit = prog(t, E.exit + 0.05, 0.35, easeInCubic); const speaking = t >= E.speech_start - 0.1 && t < 24.4; const ring = speaking ? 0.3 + mouth * 0.7 : 0;
+  const avP = springT(t - E.avatar_in, { stiffness: 110, damping: 14 }); const speaking = t >= E.speech_start - 0.1 && t < 24.4;
   const phP = springT(t - E.pharaoh_in, { stiffness: 170, damping: 15 }); const stampP = springT(t - E.check, { stiffness: 260, damping: 11 }); const simP = springT(t - E.similar, { stiffness: 220, damping: 12 }); const phWobble = t > E.similar ? Math.sin((t - E.similar) * 18) * 4 * Math.exp(-(t - E.similar) * 4) : 0; const phExit = prog(t, E.exit, 0.3, easeInCubic);
-  const black = prog(t, E.exit + 0.12, 0.4, (x) => x);
+  const black = prog(t, E.fade_start, tl.duration - E.fade_start, (x) => x * x);
   const horizonIn = prog(t, E.horizon, 1.2); const skyIn = prog(t, 0, 1.4);
   const birdsX = W + 200 - (t - 1.0) * 150;
   return (
@@ -205,13 +205,9 @@ export const Desert: React.FC = () => {
           </div>
           <div style={{ fontFamily: F.display, fontWeight: 900, fontSize: 92, lineHeight: 1, color: "#1b1407", background: C.accent, padding: "10px 30px 14px", borderRadius: 18, transform: `rotate(${lerp(-10, -3, tagP)}deg) scale(${lerp(2.4, 1, tagP)}) skewX(-6deg)`, opacity: tagOp, boxShadow: "0 10px 40px rgba(255,159,46,0.35), 0 4px 0 #a85f12", transformOrigin: "40% 50%", whiteSpace: "nowrap" }}>= МУРАВЬИ</div>
         </div>
-        {/* avatar card */}
-        <div style={{ position: "absolute", left: 84, top: 700, transform: `translateY(${lerp(140, 0, avP) + 420 * avExit}px) rotate(${lerp(-6, 0, avP)}deg)`, opacity: clamp(avP * 1.5, 0, 1) * (1 - avExit), transformOrigin: "50% 100%" }}>
-          <div style={{ position: "absolute", inset: -8, borderRadius: 36, border: `4px solid ${C.green}`, opacity: ring, boxShadow: `0 0 ${18 + mouth * 24}px rgba(61,220,132,${0.35 + mouth * 0.4})` }} />
-          <Avatar t={t} mouth={speaking ? mouth : 0} mood={moodAt(t)} gestures={GESTURES} look={0.25 + 0.15 * Math.sin(t * 0.9)} />
-          <div style={{ position: "absolute", right: -14, bottom: -14, width: 54, height: 54, borderRadius: 27, background: speaking ? C.green : "#2a2f45", border: "4px solid #15121c", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="26" height="26" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill={speaking ? "#0e2a1a" : "#8b8fa3"} /><path d="M6 11 a6 6 0 0 0 12 0 M12 17 v4 M8 21 h8" stroke={speaking ? "#0e2a1a" : "#8b8fa3"} strokeWidth="2" fill="none" strokeLinecap="round" /></svg>
-          </div>
+        {/* sticker character */}
+        <div style={{ position: "absolute", left: 30, top: 600, transform: `translateY(${lerp(500, 0, avP)}px)` }}>
+          <Sticker t={t} mouth={speaking ? mouth : 0} mood={moodAt(t)} gestures={GESTURES} look={0.35 + 0.15 * Math.sin(t * 0.9)} width={470} id="p" />
         </div>
         {/* pharaoh card */}
         {phP > 0 && (
@@ -230,7 +226,7 @@ export const Desert: React.FC = () => {
             {stampP > 0 && <div style={{ position: "absolute", right: -8, bottom: -34, fontFamily: F.display, fontWeight: 900, fontSize: 34, color: C.green, border: `4px solid ${C.green}`, borderRadius: 12, padding: "4px 14px", transform: `rotate(-9deg) scale(${lerp(1.8, 1, stampP)})`, opacity: clamp(stampP * 2, 0, 1), background: "rgba(10,8,16,0.8)", letterSpacing: "0.02em", whiteSpace: "nowrap" }}>НЕ ТАКИЕ ✓</div>}
           </div>
         )}
-        <Kinetic chunks={chunks} t={t} left={400} right={400} top={300} bottom={300} base={100} big={160} shiftX={-210 * springT(t - E.pharaoh_in, { stiffness: 120, damping: 16 })} redFirst={false} />
+        <Kinetic chunks={chunks} t={t} left={520} right={400} top={300} bottom={300} base={96} big={150} shiftX={-200 * springT(t - E.pharaoh_in, { stiffness: 120, damping: 16 })} />
       </AbsoluteFill>
       <Grain opacity={0.1} vignette={0.6} />
       <AbsoluteFill style={{ background: "#000", opacity: black, pointerEvents: "none" }} />

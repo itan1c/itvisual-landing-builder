@@ -3,17 +3,17 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import tl from "../data/timeline2.json";
 import words from "../data/words2.json";
 import env from "../data/clip2_env.json";
-import menv from "../data/clip2_music_env.json";
 import { F } from "../lib/fonts";
 import { clamp, easeInCubic, easeOutBack, lerp, prog, rng, springT } from "../lib/util";
 import { Grain } from "../components/Grain";
-import { Avatar, Gesture, Mood } from "../components/Avatar";
-import { AntFace } from "../components/Ant";
-import { C, Chunk } from "../components/Captions";
-import { Kinetic } from "../components/Kinetic";
+import { Sticker, Gesture, Mood } from "../components/Sticker";
+import { Ant, AntFace } from "../components/Ant";
+import { Chunk } from "../components/Captions";
+import { Stack, K } from "../components/Kinetic";
 const E = tl.events;
 const NAMES = ["nastoyka", "alexford", "mokach1no", "малой", "bobronskiy"];
-const YELLS = ["ТЫ ЧЁ?!", "КТО СТРЕЛЯЛ", "НЕ Я!!", "АЛЁ!", "ОТДАЙ", "ВЫХОДИ", "ЭТО МОЁ", "ЧЁ ОРЁШЬ", "СКАМ!", "АААА", "НУ ТЫ", "БАН"];
+const COLORS = ["#5865f2", "#e74c3c", "#2ecc71", "#f1c40f", "#9b59b6"];
+const YELLS = ["ТЫ ЧЁ?!", "КТО СТРЕЛЯЛ", "НЕ Я!!", "АЛЁ!", "ОТДАЙ", "ВЫХОДИ", "ЭТО МОЁ", "ЧЁ ОРЁШЬ", "СКАМ!", "АААА", "НУ ТЫ", "???"];
 const GESTURES: Gesture[] = [
   { pose: "point", t0: 1.72, dur: 0.8 }, { pose: "handsup", t0: 3.72, dur: 0.85 }, { pose: "open", t0: 4.64, dur: 0.85 }, { pose: "point", t0: 5.6, dur: 0.7 },
   { pose: "handsup", t0: 7.52, dur: 1.6 }, { pose: "circle", t0: 9.9, dur: 1.4 }, { pose: "shrug", t0: 11.52, dur: 0.9 }, { pose: "chop", t0: 13.52, dur: 0.5 },
@@ -26,67 +26,80 @@ const MOODS: { t: number; m: Mood }[] = [
   { t: 16.48, m: { brow: 0.6, smile: 0.5, squint: 0 } }, { t: 17.28, m: { brow: 0.8, smile: 0.9, squint: 0.2 } },
 ];
 const moodAt = (t: number): Mood => { let cur = MOODS[0].m, prev = MOODS[0].m, t0 = 0; for (const k of MOODS) { if (t >= k.t) { prev = cur; cur = k.m; t0 = k.t; } } const b = prog(t, t0, 0.3); return { brow: lerp(prev.brow, cur.brow, b), smile: lerp(prev.smile, cur.smile, b), squint: lerp(prev.squint, cur.squint, b) }; };
-// yell schedule for the five ants: (start, ant, text)
 const YELL_EV = (() => { const r = rng(42); const out: { s: number; a: number; txt: string; d: number }[] = []; let t = E.yell_start; let k = 0; while (t < E.yell_end - 0.3) { out.push({ s: t, a: Math.floor(r() * 5), txt: YELLS[k % YELLS.length], d: 0.5 + r() * 0.3 }); t += 0.22 + r() * 0.25; k++; } return out; })();
+const RAYS = 28;
+const PANEL_IN = 6.36, PANEL_OUT = 12.4;
 export const Discord: React.FC = () => {
   const frame = useCurrentFrame(); const { fps } = useVideoConfig(); const t = frame / fps;
-  const chunks = words as Chunk[]; const mouth = (env as number[])[Math.min(frame, env.length - 1)] ?? 0; const music = (menv as number[])[Math.min(frame, menv.length - 1)] ?? 0;
-  const musicOn = t >= tl.music.at && t < E.music_cut; const beat = musicOn ? music : 0;
-  const unm = springT(t - E.unmute, { stiffness: 240, damping: 12 }); const unmuted = t >= E.unmute;
-  const speaking = t >= E.speech_start - 0.1 && t < 18.6; const ring = unmuted && speaking ? 0.35 + mouth * 0.65 : 0;
-  const avP = springT(t - E.avatar_in, { stiffness: 150, damping: 14 }); const hdr = springT(t - E.header_in, { stiffness: 200, damping: 16 });
+  const chunks = words as Chunk[]; const mouth = (env as number[])[Math.min(frame, env.length - 1)] ?? 0;
+  const speaking = t >= E.speech_start - 0.1 && t < 18.6;
   const cut = t >= E.music_cut; const fade = prog(t, E.end_fade, 0.5, (x) => x);
-  const zap = springT(t - E.relations, { stiffness: 260, damping: 10 }); const zapOn = t >= E.relations && t < E.music_cut;
+  const flash = t < E.pizdec ? 0 : t < E.pizdec + 0.08 ? (t - E.pizdec) / 0.08 : clamp(1 - (t - E.pizdec - 0.08) / 0.45, 0, 1);
+  const panelP = springT(t - PANEL_IN, { stiffness: 170, damping: 15 }) * (1 - prog(t, PANEL_OUT, 0.25, easeInCubic));
+  const cardP = springT(t - 12.52, { stiffness: 170, damping: 15 }) * (cut ? 0 : 1);
+  const zap = springT(t - E.relations, { stiffness: 260, damping: 10 }); const zapOn = t >= E.relations && t < PANEL_OUT;
+  const stIn = springT(t - 0.2, { stiffness: 120, damping: 14 });
+  const offP = springT(t - E.music_cut, { stiffness: 200, damping: 14 });
   return (
-    <AbsoluteFill style={{ background: "#050508", overflow: "hidden" }}>
-      {/* music glow + bars */}
-      {!cut && musicOn && (<>
-        <div style={{ position: "absolute", left: 960 - 700, top: 540 - 500, width: 1400, height: 1000, borderRadius: "50%", background: `radial-gradient(circle, rgba(109,112,255,${0.10 + beat * 0.14}) 0%, rgba(109,112,255,0) 60%)`, filter: "blur(20px)" }} />
-        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 120, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 6, opacity: 0.5 }}>
-          {Array.from({ length: 48 }, (_, i) => { const r = rng(i * 7 + frame * 3); const h = 6 + (0.35 + 0.65 * r()) * beat * 90 * (1 - Math.abs(i - 24) / 30); return <div key={i} style={{ width: 10, height: h, borderRadius: 5, background: C.blurple }} />; })}
-        </div>
-      </>)}
-      {/* header */}
-      <div style={{ position: "absolute", left: 80, top: 56, display: "flex", alignItems: "center", gap: 14, opacity: clamp(hdr * 1.5, 0, 1) * (cut ? 0.35 : 1), transform: `translateY(${lerp(-20, 0, hdr)}px)`, fontFamily: F.mono, fontWeight: 600, fontSize: 24, letterSpacing: "0.22em", color: "#8d90a8" }}>
-        <svg width="28" height="28" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z" fill="#8d90a8" /><path d="M16 9a4 4 0 0 1 0 6 M18.5 6.5a7.5 7.5 0 0 1 0 11" stroke="#8d90a8" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>
-        ГОЛОСОВОЙ  //  ОБЩИЙ
-        {!cut && <span style={{ marginLeft: 14, padding: "4px 12px", borderRadius: 8, background: "rgba(61,220,132,0.12)", color: C.green, fontSize: 18 }}>● LIVE</span>}
-      </div>
-      {/* narrator avatar (circle) */}
-      <div style={{ position: "absolute", left: 120, top: 380, transform: `translateY(${lerp(80, 0, avP)}px) scale(${lerp(0.8, 1, avP)})`, opacity: clamp(avP * 1.5, 0, 1) * (cut ? 0.75 : 1) }}>
-        <div style={{ position: "absolute", inset: -10, borderRadius: "50%", border: `5px solid ${C.green}`, opacity: ring, boxShadow: `0 0 ${20 + mouth * 30}px rgba(61,220,132,${0.3 + mouth * 0.4})` }} />
-        <div style={{ width: 300, height: 300, borderRadius: "50%", overflow: "hidden", border: "4px solid #2a2b3d" }}>
-          <Avatar t={t} mouth={speaking ? mouth : 0} mood={moodAt(t)} gestures={GESTURES} look={0.3 + 0.15 * Math.sin(t * 0.9)} />
-        </div>
-        {/* mic badge: muted (red slash) → unmuted */}
-        <div style={{ position: "absolute", right: -6, bottom: -6, width: 72, height: 72, borderRadius: 36, background: unmuted ? C.green : "#2a2b3d", border: "5px solid #050508", display: "flex", alignItems: "center", justifyContent: "center", transform: `scale(${1 + 0.35 * Math.sin(Math.PI * clamp(unm, 0, 1)) * (unm < 1 ? 1 : 0)})` }}>
-          <svg width="36" height="36" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill={unmuted ? "#0e2a1a" : "#c9ccdf"} /><path d="M6 11 a6 6 0 0 0 12 0 M12 17 v4 M8 21 h8" stroke={unmuted ? "#0e2a1a" : "#c9ccdf"} strokeWidth="2.2" fill="none" strokeLinecap="round" />
-            <line x1="4" y1="3" x2="20" y2="21" stroke={C.red} strokeWidth="3" strokeLinecap="round" opacity={1 - clamp(unm, 0, 1)} /></svg>
-        </div>
-        <div style={{ position: "absolute", left: 0, right: 0, top: 316, textAlign: "center", fontFamily: F.body, fontWeight: 600, fontSize: 30, color: "#c9ccdf" }}>Ты</div>
-      </div>
-      {/* participants (ants) */}
-      {!cut && NAMES.map((n, i) => {
-        const p = springT(t - (E.ants_in + i * 0.085), { stiffness: 220, damping: 13 }); if (p <= 0) return null;
-        const yell = YELL_EV.find((y) => y.a === i && t >= y.s && t < y.s + y.d);
-        const loud = yell ? 1 : 0; const r = rng(i * 99 + 1); const idle = 0.5 + 0.5 * Math.sin(t * (2 + r()) + r() * 6);
-        const y = 265 + i * 125; const x = 1590;
-        const inP = yell ? springT(t - yell.s, { stiffness: 320, damping: 12 }) : 0; const outP = yell ? prog(t, yell.s + yell.d - 0.1, 0.1, easeInCubic) : 0;
-        return (
-          <div key={i} style={{ position: "absolute", left: x, top: y, display: "flex", alignItems: "center", gap: 16, transform: `translateX(${lerp(120, 0, p)}px) scale(${lerp(0.7, 1, p)})`, opacity: clamp(p * 1.5, 0, 1), transformOrigin: "100% 50%" }}>
-            {yell && <div style={{ position: "absolute", right: "100%", marginRight: 26, top: 14, transform: `scale(${inP * (1 - outP)})`, transformOrigin: "100% 50%", background: "#fff", color: "#1b1407", fontFamily: F.display, fontWeight: 900, fontSize: 26, padding: "8px 16px", borderRadius: 12, whiteSpace: "nowrap" }}>{yell.txt}<div style={{ position: "absolute", right: -9, top: 15, width: 0, height: 0, borderTop: "9px solid transparent", borderBottom: "9px solid transparent", borderLeft: "11px solid #fff" }} /></div>}
-            <div style={{ position: "relative", transform: `scale(${1 + loud * 0.1 * (0.6 + 0.4 * Math.sin(t * 30))})` }}>
-              <div style={{ position: "absolute", inset: -6, borderRadius: "50%", border: `4px solid ${C.green}`, opacity: loud ? 0.9 : 0.15 * idle, boxShadow: loud ? "0 0 22px rgba(61,220,132,0.6)" : "none" }} />
-              <AntFace size={96} mouth={loud ? 0.6 + 0.4 * Math.abs(Math.sin(t * 25 + i)) : 0.05} angry={loud ? 1 : 0.6} />
-            </div>
-            <div style={{ fontFamily: F.body, fontWeight: 600, fontSize: 26, color: loud ? "#fff" : "#9a9db5", width: 200 }}>{n}</div>
+    <AbsoluteFill style={{ background: "#0f0f0f", overflow: "hidden" }}>
+      {/* rotating sunburst */}
+      <svg width={1920} height={1080} style={{ position: "absolute", inset: 0 }}>
+        <g transform={`translate(1150 600) rotate(${t * 2.2})`}>
+          {Array.from({ length: RAYS }, (_, i) => { const a0 = (i / RAYS) * Math.PI * 2, a1 = ((i + 1) / RAYS) * Math.PI * 2; const R = 2400; const dark = i % 2 === 0; const base = dark ? "#171717" : "#0f0f0f"; const red = dark ? "#d94040" : "#b52f2f"; return <path key={i} d={`M0 0 L${Math.cos(a0) * R} ${Math.sin(a0) * R} L${Math.cos(a1) * R} ${Math.sin(a1) * R} Z`} fill={flash > 0 ? red : base} opacity={flash > 0 ? lerp(1, 1, flash) : 1} />; })}
+        </g>
+        {flash > 0 && <rect width="1920" height="1080" fill="#c0392b" opacity={0.25 * (1 - flash)} />}
+      </svg>
+      <AbsoluteFill style={{ background: "radial-gradient(ellipse at 60% 55%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.55) 100%)" }} />
+      {/* voice chat panel */}
+      {panelP > 0.001 && (
+        <div style={{ position: "absolute", left: 980, top: 96, width: 860, transform: `translateY(${lerp(-60, 0, panelP)}px) scale(${lerp(0.9, 1, panelP)})`, opacity: clamp(panelP * 1.4, 0, 1), transformOrigin: "50% 0%", background: "#1f2024", border: "3px solid #2c2d33", borderRadius: 22, boxShadow: "0 20px 60px rgba(0,0,0,0.6)" }}>
+          <div style={{ padding: "16px 28px", borderBottom: "3px solid #2c2d33", fontFamily: F.display, fontWeight: 900, fontSize: 34, color: "#e9e9ee", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 14 }}>
+            <svg width="30" height="30" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z" fill="#e9e9ee" /><path d="M16 9a4 4 0 0 1 0 6 M18.5 6.5a7.5 7.5 0 0 1 0 11" stroke="#e9e9ee" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>
+            Голосовой чат
           </div>
-        );
-      })}
-      {/* lightning between the first two ants on "отношения" */}
-      {zapOn && <svg width="96" height="96" style={{ position: "absolute", left: 1486, top: 338, transform: `scale(${zap}) rotate(${Math.sin(t * 40) * 6})`, transformOrigin: "50% 50%" }}><path d="M70 6 L32 62 L58 62 L40 114 L92 48 L64 48 Z" fill="#ffd166" stroke="#ff9f2e" strokeWidth="4" strokeLinejoin="round" /></svg>}
-      <Kinetic chunks={chunks} t={t} left={470} right={cut ? 80 : 600} base={96} big={150} finalAccent />
-      <Grain opacity={0.08} vignette={0.65} />
+          <div style={{ display: "flex", justifyContent: "space-around", padding: "26px 10px 22px" }}>
+            {NAMES.map((n, i) => {
+              const yell = YELL_EV.find((y) => y.a === i && t >= y.s && t < y.s + y.d); const loud = yell ? 1 : 0;
+              const inP = yell ? springT(t - yell.s, { stiffness: 320, damping: 12 }) : 0; const outP = yell ? prog(t, yell.s + yell.d - 0.1, 0.1, easeInCubic) : 0;
+              const ap = springT(t - (E.ants_in + i * 0.08), { stiffness: 220, damping: 13 });
+              return (
+                <div key={i} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, width: 150, transform: `scale(${clamp(ap, 0, 1.1)})` }}>
+                  {yell && <div style={{ position: "absolute", top: -58, left: "50%", transform: `translateX(-50%) scale(${inP * (1 - outP)})`, transformOrigin: "50% 100%", background: "#fff", color: "#1b1407", fontFamily: F.display, fontWeight: 900, fontSize: 22, padding: "6px 12px", borderRadius: 10, whiteSpace: "nowrap", border: "3px solid #1a1a1a" }}>{yell.txt}<div style={{ position: "absolute", left: "50%", bottom: -11, marginLeft: -8, width: 0, height: 0, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "10px solid #1a1a1a" }} /></div>}
+                  <div style={{ position: "relative", transform: `scale(${1 + loud * 0.1 * (0.6 + 0.4 * Math.sin(t * 30))})` }}>
+                    <div style={{ position: "absolute", inset: -6, borderRadius: "50%", border: `4px solid ${K.green}`, opacity: loud ? 1 : 0.18, boxShadow: loud ? "0 0 20px rgba(88,214,141,0.7)" : "none" }} />
+                    <AntFace size={96} bg={COLORS[i]} mouth={loud ? 0.6 + 0.4 * Math.abs(Math.sin(t * 25 + i)) : 0.05} angry={loud ? 1 : 0.5} />
+                  </div>
+                  <div style={{ fontFamily: F.display, fontWeight: 800, fontSize: 22, color: loud ? "#fff" : "#b9bac4", textTransform: "uppercase", whiteSpace: "nowrap" }}>{n}</div>
+                  <svg width="20" height="24" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill={loud ? K.green : "#5f6068"} /><path d="M6 11 a6 6 0 0 0 12 0 M12 17 v4 M8 21 h8" stroke={loud ? K.green : "#5f6068"} strokeWidth="2.2" fill="none" strokeLinecap="round" /></svg>
+                </div>
+              );
+            })}
+          </div>
+          {zapOn && <svg width="90" height="90" style={{ position: "absolute", left: 300, top: 110, transform: `scale(${zap}) rotate(${Math.sin(t * 40) * 6})` }}><path d="M52 4 L22 48 L42 48 L30 86 L70 36 L48 36 Z" fill={K.yellow} stroke="#1a1a1a" strokeWidth="4" strokeLinejoin="round" /></svg>}
+        </div>
+      )}
+      {/* "whole video" card */}
+      {cardP > 0.001 && (
+        <div style={{ position: "absolute", left: 1040, top: 120, width: 740, transform: `translateY(${lerp(-60, 0, cardP)}px) scale(${lerp(0.9, 1, cardP)})`, opacity: clamp(cardP * 1.4, 0, 1), transformOrigin: "50% 0%", borderRadius: 22, overflow: "hidden", border: "4px solid #2c2d33", boxShadow: "0 20px 60px rgba(0,0,0,0.6)" }}>
+          <div style={{ height: 300, background: "linear-gradient(#5a3a2c, #2a1a14)", position: "relative" }}>
+            <svg width="740" height="300" style={{ position: "absolute", inset: 0 }}>
+              <rect x="0" y="200" width="740" height="100" fill="#3a2418" />
+              {Array.from({ length: 9 }, (_, i) => <g key={i} transform={`translate(${60 + i * 80} ${225 + (i % 3) * 20}) scale(2.6 ${2.6 * (i % 2 ? 1 : -1)}) rotate(${(i * 37) % 40 - 20})`}><Ant walk={t * 20 + i} color="#120c12" legW={2} /></g>)}
+            </svg>
+            <div style={{ position: "absolute", left: "50%", top: "50%", width: 96, height: 96, marginLeft: -48, marginTop: -48, borderRadius: 48, background: "rgba(255,255,255,0.92)", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 0, height: 0, borderTop: "22px solid transparent", borderBottom: "22px solid transparent", borderLeft: "36px solid #1a1a1a", marginLeft: 8 }} /></div>
+          </div>
+          <div style={{ background: "#d33b3b", padding: "12px 24px", fontFamily: F.display, fontWeight: 900, fontSize: 28, color: "#fff", textTransform: "uppercase" }}>Весь видос</div>
+        </div>
+      )}
+      {/* music off label */}
+      {cut && <div style={{ position: "absolute", right: 120, top: 80, fontFamily: F.display, fontWeight: 900, fontSize: 40, color: "#8b8c96", textTransform: "uppercase", opacity: clamp(offP, 0, 1), transform: `translateY(${lerp(-20, 0, offP)}px)` }}>♪ выкл</div>}
+      {/* stacked captions */}
+      <Stack chunks={chunks} t={t} left={960} width={900} slotBottom={640} prevTop={690} size={82} />
+      {/* sticker character */}
+      <div style={{ position: "absolute", left: 30, top: 380, transform: `translateY(${lerp(500, 0, stIn)}px)` }}>
+        <Sticker t={t} mouth={speaking ? mouth : 0} mood={moodAt(t)} gestures={GESTURES} look={0.4 + 0.2 * Math.sin(t * 0.9)} width={700} id="d" />
+      </div>
+      <Grain opacity={0.07} vignette={0.35} />
       <AbsoluteFill style={{ background: "#000", opacity: fade, pointerEvents: "none" }} />
     </AbsoluteFill>
   );
