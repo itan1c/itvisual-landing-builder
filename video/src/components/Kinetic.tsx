@@ -24,10 +24,10 @@ export const Kinetic: React.FC<{ chunks: Chunk[]; t: number; left: number; right
   );
 };
 /** Right-side captions (sticker clip): one current chunk, words spring in as spoken; no previous line. */
-export const Stack: React.FC<{ chunks: Chunk[]; t: number; left: number; width: number; top?: number; size?: number }> = ({ chunks, t, left, width, top = 150, size = 84 }) => {
+export const Stack: React.FC<{ chunks: Chunk[]; t: number; left: number; width: number; top?: number; size?: number; hideAt?: number }> = ({ chunks, t, left, width, top = 150, size = 84, hideAt = 1e9 }) => {
   let idx = -1; for (let i = 0; i < chunks.length; i++) if (t >= chunks[i].s - 0.03) idx = i;
   if (idx < 0) return null; const cur = chunks[idx]; const nextS = chunks[idx + 1]?.s ?? 1e9;
-  const hideAt = Math.min(cur.e + 1.2, nextS - 0.04); if (t >= hideAt) return null;   const fsFor = (c: Chunk) => { const n = c.w.reduce((a, w) => a + w.t.length + 1, 0); const big = c.w.some((w) => w.st === "big"); return big ? size * 1.45 : n > 30 ? size * 0.74 : n > 20 ? size * 0.86 : size; };
+  const hide = Math.min(cur.e + 1.2, nextS - 0.04, hideAt); if (t >= hide) return null;   const fsFor = (c: Chunk) => { const n = c.w.reduce((a, w) => a + w.t.length + 1, 0); const big = c.w.some((w) => w.st === "big"); return big ? size * 1.45 : n > 30 ? size * 0.74 : n > 20 ? size * 0.86 : size; };
   const line = (c: Chunk, fs: number, animate: boolean, color?: string) => (
     <div style={{ display: "flex", flexWrap: "wrap", gap: `0 ${fs * 0.26}px`, fontFamily: F.display, fontWeight: 900, fontSize: fs, lineHeight: 1.06, textTransform: "uppercase", letterSpacing: "-0.005em" }}>
       {c.w.map((w, i) => { const wp = animate ? springT(t - (w.s - 0.03), { stiffness: 320, damping: 16 }) : 1; const on = !animate || t >= w.s - 0.03; return <span key={i} style={{ display: "inline-block", color: color ?? wordColor(w), opacity: on ? clamp(wp * 1.6, 0, 1) : 0, transform: `translateY(${lerp(26, 0, wp)}px) scale(${lerp(0.75, 1, wp)})`, textShadow: "0 3px 0 #000, 0 10px 24px rgba(0,0,0,0.6)", whiteSpace: "nowrap", marginBottom: 2 }}>{w.t}</span>; })}

@@ -102,12 +102,12 @@ export const Discord: React.FC = () => {
       {/* music off label */}
       {cut && <div style={{ position: "absolute", right: 120, top: 80, fontFamily: F.display, fontWeight: 900, fontSize: 40, color: "#8b8c96", textTransform: "uppercase", opacity: clamp(offP, 0, 1), transform: `translateY(${lerp(-20, 0, offP)}px)` }}>♪ выкл</div>}
       {/* stacked captions */}
-      <Stack chunks={lineChunks} t={t} left={960} width={900} top={430} size={82} />
+      <Stack chunks={lineChunks} t={t} left={960} width={900} top={430} size={82} hideAt={E.final_word} />
       {impact && <Impact chunk={impact} t={t} x={1410} y={520} size={190} maxWidth={820} />}
       {/* anger marks near the head */}
       {angryOn && !cut && <svg width="120" height="120" style={{ position: "absolute", left: 600, top: 400, transform: `scale(${0.9 + 0.1 * Math.sin(t * 20)}) rotate(${Math.sin(t * 9) * 6}deg)` }}><g stroke={K.red} strokeWidth="10" strokeLinecap="round" fill="none"><path d="M30 30 q20 14 0 40 M60 20 q20 14 0 40 M20 70 q20 14 0 40 M60 60 q20 14 0 40" /></g></svg>}
-      {/* grawlix rain on the final word */}
-      {t >= E.final_word && t < E.final_word + 2.6 && Array.from({ length: 36 }, (_, i) => { const r = rng(i * 17 + 3); const x0 = 900 + r() * 640; const delay = r() * 0.9; const age = t - E.final_word - delay; if (age < 0) return null; const y = -60 + age * (420 + r() * 300); const ch = "#@$%!&?*"[i % 8]; return <div key={i} style={{ position: "absolute", left: x0, top: y, fontFamily: F.display, fontWeight: 900, fontSize: 40 + r() * 50, color: [K.yellow, K.red, "#fff", K.green][i % 4], transform: `rotate(${age * 160 * (r() > 0.5 ? 1 : -1)}deg)`, opacity: clamp(1 - age / 2.2, 0, 1), WebkitTextStroke: "3px #111", paintOrder: "stroke fill" }}>{ch}</div>; })}
+      {/* grawlix spray falling from under the final word */}
+      {t >= E.final_word && t < E.final_word + 2.8 && Array.from({ length: 34 }, (_, i) => { const r = rng(i * 17 + 3); const x0 = 980 + r() * 760; const delay = 0.1 + r() * 0.8; const age = t - E.final_word - delay; if (age < 0) return null; const vy = 260 + r() * 240; const y = 610 + age * vy + 140 * age * age; const x = x0 + Math.sin(age * 4 + i) * 18; const ch = "#@$%!&?*"[i % 8]; return <div key={i} style={{ position: "absolute", left: x, top: y, fontFamily: F.display, fontWeight: 900, fontSize: 40 + r() * 50, color: [K.yellow, K.red, "#fff", K.green][i % 4], transform: `translate(-50%,-50%) rotate(${age * 150 * (r() > 0.5 ? 1 : -1)}deg) scale(${springT(age, { stiffness: 320, damping: 14 })})`, opacity: clamp(1.2 - age / 1.6, 0, 1), WebkitTextStroke: "3px #111", paintOrder: "stroke fill" }}>{ch}</div>; })}
       {/* sticker character */}
       <div style={{ position: "absolute", left: 30, top: 380, transform: `translateY(${lerp(500, 0, stIn)}px)` }}>
         <Sticker t={t} mouth={speaking ? mouth : 0} mood={moodAt(t)} gestures={GESTURES} look={0.4 + 0.2 * Math.sin(t * 0.9)} width={700} id="d" />
