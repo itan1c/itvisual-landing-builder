@@ -11,7 +11,7 @@ import { Avatar, Gesture, Mood } from "../components/Avatar";
 import { AntFace } from "../components/Ant";
 import { C, Chunk } from "../components/Captions";
 const E = tl.events;
-const NAMES = ["nastoya", "alexford", "mokach1no", "малой", "bobronskiy"];
+const NAMES = ["nastoyka", "alexford", "mokach1no", "малой", "bobronskiy"];
 const YELLS = ["ТЫ ЧЁ?!", "КТО СТРЕЛЯЛ", "НЕ Я!!", "АЛЁ!", "ОТДАЙ", "ВЫХОДИ", "ЭТО МОЁ", "ЧЁ ОРЁШЬ", "СКАМ!", "АААА", "НУ ТЫ", "БАН"];
 const GESTURES: Gesture[] = [
   { pose: "point", t0: 1.72, dur: 0.8 }, { pose: "handsup", t0: 3.72, dur: 0.85 }, { pose: "open", t0: 4.64, dur: 0.85 }, { pose: "point", t0: 5.6, dur: 0.7 },
