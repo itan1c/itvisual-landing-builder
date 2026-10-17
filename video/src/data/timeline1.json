@@ -1,0 +1,14 @@
+{
+  "fps": 30, "duration": 25.0,
+  "music": {"src_start": 0.0, "at": 0.0, "end": 25.0, "fade_in": 0.8, "fade_out": 0.9},
+  "voice": {"raw": "voice8_raw", "cut_from": 6.20, "at": 6.60, "fade_in": 0.25},
+  "events": {
+    "label_in": 0.30, "horizon": 0.80, "floor_in": 1.20,
+    "pyr_big": 2.30, "pyr_mid": 2.75, "pyr_small": 3.05, "palms": 3.60,
+    "title_in": 4.40, "avatar_in": 5.70, "speech_start": 7.00,
+    "pyr_pulse": 9.08, "riser": 10.00, "shudder": 10.85, "burst": 11.12, "tag_in": 11.18,
+    "frantic": 13.04, "yell_start": 15.64, "yell_end": 17.60,
+    "bonfire": 19.20, "pharaoh_in": 21.24, "check": 22.40, "similar": 23.00,
+    "exit": 24.30
+  }
+}

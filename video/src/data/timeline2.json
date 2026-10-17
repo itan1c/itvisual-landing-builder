@@ -1,0 +1,12 @@
+{
+  "fps": 30, "duration": 20.0,
+  "music": {"src_start": 35.0, "at": 2.20, "end": 15.25, "fade_in": 0.5, "fade_out": 0.015},
+  "voice": {"raw": "voice9_raw", "cut_from": 0.0, "at": 1.00, "fade_in": 0.2},
+  "events": {
+    "header_in": 0.30, "avatar_in": 0.60, "speech_start": 1.72,
+    "pizdec": 3.72, "unmute": 5.60, "ants_in": 6.96,
+    "yell_start": 7.52, "yell_end": 12.00, "orut": 8.52, "relations": 9.92,
+    "whole_video": 14.52, "music_cut": 15.25,
+    "final_start": 16.48, "final_word": 17.28, "end_fade": 19.40
+  }
+}
