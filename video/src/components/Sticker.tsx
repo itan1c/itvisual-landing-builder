@@ -78,28 +78,29 @@ export const Sticker: React.FC<{ t: number; mouth: number; mood?: Mood; gestures
         <rect x="258" y="360" width="84" height="90" rx="22" fill={SKIN} />
         {!faceHand && hands}
         <g transform={`translate(0 ${headDrop}) rotate(${tilt + headDrop * 0.4} 300 240)`}>
-          <circle cx="150" cy="250" r="30" fill={SKIN} /><circle cx="450" cy="250" r="30" fill={SKIN} />
-          <path d="M150 130 C150 40 220 18 300 18 C380 18 450 40 450 130 L450 300 C450 392 380 432 300 432 C220 432 150 392 150 300 Z" fill={SKIN} strokeWidth={7} />
-          {/* hair cap + band */}
-          <path d="M152 160 C152 60 220 26 300 26 C380 26 448 60 448 160 C410 128 360 112 300 112 C240 112 190 128 152 160 Z" fill={HAIR} />
-          <path d="M172 118 C230 92 370 92 428 118" fill="none" stroke="#4d3528" strokeWidth={5} />
+          <circle cx="142" cy="262" r="30" fill={SKIN} /><circle cx="458" cy="262" r="30" fill={SKIN} />
+          {/* head: rounder */}
+          <path d="M140 150 C140 50 215 14 300 14 C385 14 460 50 460 150 L460 290 C460 382 392 428 300 428 C208 428 140 382 140 290 Z" fill={SKIN} strokeWidth={7} />
+          {/* short curly hair with bumpy hairline + sideburns */}
+          <path d="M142 176 C142 60 215 22 300 22 C385 22 458 60 458 176 C450 156 440 146 428 144 C420 130 408 124 396 128 C386 114 372 110 360 116 C348 104 332 102 320 110 C308 100 292 100 280 110 C268 102 252 104 240 116 C228 110 214 114 204 128 C192 124 180 130 172 144 C160 146 150 156 142 176 Z" fill={HAIR} />
+          <path d="M140 176 L140 262 L172 262 L172 186 Z M460 176 L460 262 L428 262 L428 186 Z" fill={HAIR} />
           {/* eyes */}
-          <ellipse cx="245" cy="222" rx={eyeRx} ry={eyeRy} fill="#fff" />
-          <ellipse cx="355" cy="222" rx={eyeRx} ry={eyeRy} fill="#fff" />
-          <circle cx={250 + px} cy={228} r={Math.min(19, eyeRy * 0.5)} fill={INK} stroke="none" />
-          <circle cx={360 + px} cy={228} r={Math.min(19, eyeRy * 0.5)} fill={INK} stroke="none" />
-          <circle cx={243 + px} cy={216} r={Math.min(6, eyeRy * 0.2)} fill="#fff" stroke="none" />
-          <circle cx={353 + px} cy={216} r={Math.min(6, eyeRy * 0.2)} fill="#fff" stroke="none" />
-          {/* brows */}
-          <path d={`M196 ${152 - browY + angry * 4} Q 245 ${126 - browY - (1 - angry) * 6} 292 ${150 - browY + angry * 26}`} fill="none" stroke={INK} strokeWidth={15} />
-          <path d={`M404 ${152 - browY + angry * 4} Q 355 ${126 - browY - (1 - angry) * 6} 308 ${150 - browY + angry * 26}`} fill="none" stroke={INK} strokeWidth={15} />
-          {/* nose */}
-          <path d="M300 240 L286 292 Q300 302 314 292 Z" fill={SKIN_D} strokeWidth={5} />
-          {/* beard + mustache */}
-          <path d="M222 322 C228 386 268 410 300 410 C332 410 372 386 378 322 C352 348 322 356 300 356 C278 356 248 348 222 322 Z" fill="#1f1512" />
-          <path d="M242 304 Q300 286 358 304 Q300 322 242 304 Z" fill="#1f1512" />
+          <ellipse cx="243" cy="214" rx={eyeRx * 0.9} ry={eyeRy * 0.9} fill="#fff" />
+          <ellipse cx="357" cy="214" rx={eyeRx * 0.9} ry={eyeRy * 0.9} fill="#fff" />
+          <circle cx={248 + px} cy={220} r={Math.min(17, eyeRy * 0.45)} fill={INK} stroke="none" />
+          <circle cx={362 + px} cy={220} r={Math.min(17, eyeRy * 0.45)} fill={INK} stroke="none" />
+          <circle cx={242 + px} cy={209} r={Math.min(5.5, eyeRy * 0.18)} fill="#fff" stroke="none" />
+          <circle cx={356 + px} cy={209} r={Math.min(5.5, eyeRy * 0.18)} fill="#fff" stroke="none" />
+          {/* brows: thick, close */}
+          <path d={`M194 ${150 - browY + angry * 4} Q 243 ${124 - browY - (1 - angry) * 6} 290 ${146 - browY + angry * 26}`} fill="none" stroke={INK} strokeWidth={17} />
+          <path d={`M406 ${150 - browY + angry * 4} Q 357 ${124 - browY - (1 - angry) * 6} 310 ${146 - browY + angry * 26}`} fill="none" stroke={INK} strokeWidth={17} />
+          {/* nose: wider */}
+          <path d="M300 230 L280 290 Q300 306 320 290 Z" fill={SKIN_D} strokeWidth={5} />
+          {/* full beard along the jaw + connected mustache */}
+          <path d="M142 262 C150 346 210 428 300 428 C390 428 450 346 458 262 L428 262 C418 326 370 360 300 360 C230 360 182 326 172 262 Z" fill="#1f1512" />
+          <path d="M232 302 Q300 282 368 302 L360 322 Q300 306 240 322 Z" fill="#1f1512" />
           {/* mouth */}
-          <g transform="translate(300 350)">
+          <g transform="translate(300 352)">
             <path d={`M-22 ${2 - smile * 6} Q 0 ${4 + smile * 12} 22 ${2 - smile * 6}`} fill="none" strokeWidth={6} opacity={m < 0.12 ? 1 : 0} />
             <ellipse cx="0" cy={6 + m * 16} rx={26 + m * 10} ry={3 + m * 28} fill="#3a0f12" strokeWidth={5} opacity={m >= 0.12 ? 1 : 0} />
             <rect x={-20} y={-2 + m * 2} width={40} height={Math.max(0.5, m * 12)} rx="4" fill="#fff" stroke="none" opacity={m > 0.14 ? 1 : 0} />
