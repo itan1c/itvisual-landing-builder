@@ -83,7 +83,7 @@ export const Sticker: React.FC<{ t: number; mouth: number; mood?: Mood; gestures
           <path d="M140 150 C140 50 215 14 300 14 C385 14 460 50 460 150 L460 290 C460 382 392 428 300 428 C208 428 140 382 140 290 Z" fill={SKIN} strokeWidth={7} />
           {/* short curly hair with bumpy hairline + sideburns */}
           <path d="M142 176 C142 60 215 22 300 22 C385 22 458 60 458 176 C450 156 440 146 428 144 C420 130 408 124 396 128 C386 114 372 110 360 116 C348 104 332 102 320 110 C308 100 292 100 280 110 C268 102 252 104 240 116 C228 110 214 114 204 128 C192 124 180 130 172 144 C160 146 150 156 142 176 Z" fill={HAIR} />
-          <path d="M140 176 L140 262 L172 262 L172 186 Z M460 176 L460 262 L428 262 L428 186 Z" fill={HAIR} />
+          <path d="M140 176 L140 262 L172 262 L172 186 Z M460 176 L460 262 L428 262 L428 186 Z" fill={HAIR} stroke="none" />
           {/* eyes: medium, heavy upper lids = serious look */}
           {[243, 357].map((cx, i) => { const rx = eyeRx * 0.82, ry = eyeRy * 0.8, cy = 216; return (
             <g key={i}>
@@ -98,7 +98,7 @@ export const Sticker: React.FC<{ t: number; mouth: number; mood?: Mood; gestures
           {/* nose */}
           <path d="M300 232 L282 290 Q300 304 318 290 Z" fill={SKIN_D} strokeWidth={5} />
           {/* trimmed beard along the jaw + goatee + mustache */}
-          <path d="M172 262 C180 350 230 428 300 428 C370 428 420 350 428 262 L404 262 C398 318 362 374 300 374 C238 374 202 318 196 262 Z" fill="#1f1512" />
+          <path d="M140 258 L140 290 C140 382 208 428 300 428 C392 428 460 382 460 290 L460 258 L430 258 C426 334 378 378 300 378 C222 378 174 334 170 258 Z" fill="#1f1512" />
           <path d="M246 306 Q300 290 354 306 L348 322 Q300 310 252 322 Z" fill="#1f1512" />
           {/* mouth: restrained */}
           <g transform="translate(300 348)">
