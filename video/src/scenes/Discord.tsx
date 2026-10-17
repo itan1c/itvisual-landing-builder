@@ -10,6 +10,7 @@ import { Grain } from "../components/Grain";
 import { Avatar, Gesture, Mood } from "../components/Avatar";
 import { AntFace } from "../components/Ant";
 import { C, Chunk } from "../components/Captions";
+import { Kinetic } from "../components/Kinetic";
 const E = tl.events;
 const NAMES = ["nastoyka", "alexford", "mokach1no", "малой", "bobronskiy"];
 const YELLS = ["ТЫ ЧЁ?!", "КТО СТРЕЛЯЛ", "НЕ Я!!", "АЛЁ!", "ОТДАЙ", "ВЫХОДИ", "ЭТО МОЁ", "ЧЁ ОРЁШЬ", "СКАМ!", "АААА", "НУ ТЫ", "БАН"];
@@ -27,27 +28,6 @@ const MOODS: { t: number; m: Mood }[] = [
 const moodAt = (t: number): Mood => { let cur = MOODS[0].m, prev = MOODS[0].m, t0 = 0; for (const k of MOODS) { if (t >= k.t) { prev = cur; cur = k.m; t0 = k.t; } } const b = prog(t, t0, 0.3); return { brow: lerp(prev.brow, cur.brow, b), smile: lerp(prev.smile, cur.smile, b), squint: lerp(prev.squint, cur.squint, b) }; };
 // yell schedule for the five ants: (start, ant, text)
 const YELL_EV = (() => { const r = rng(42); const out: { s: number; a: number; txt: string; d: number }[] = []; let t = E.yell_start; let k = 0; while (t < E.yell_end - 0.3) { out.push({ s: t, a: Math.floor(r() * 5), txt: YELLS[k % YELLS.length], d: 0.5 + r() * 0.3 }); t += 0.22 + r() * 0.25; k++; } return out; })();
-const Kinetic: React.FC<{ chunks: Chunk[]; t: number; wide: boolean }> = ({ chunks, t, wide }) => {
-  const EXIT = 0.14; let idx = -1; for (let i = 0; i < chunks.length; i++) if (t >= chunks[i].s - 0.03) idx = i;
-  if (idx < 0) return null; const cur = chunks[idx]; if (t >= cur.e + EXIT) return null;
-  const nextStart = chunks[idx + 1]?.s ?? 1e9; const outAt = Math.min(cur.e + 0.02, nextStart - 0.05);
-  const outP = t > outAt ? prog(t, outAt, EXIT, easeInCubic) : 0;
-  const isBig = cur.w.some((w) => w.st === "big"); const final = idx === chunks.length - 1;
-  const base = isBig ? (final ? 150 : 150) : 96;
-  const red = cur.w[0].t.startsWith("ПИ*");
-  const drift = final ? 1 + 0.05 * clamp((t - cur.s) / 2.5, 0, 1) : 1;
-  return (
-    <div style={{ position: "absolute", left: 470, right: wide ? 80 : 600, top: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: `0 ${base * 0.3}px`, alignContent: "center", opacity: 1 - outP, transform: `scale(${(1 - 0.08 * outP) * drift})`, fontFamily: F.display, fontWeight: 900, lineHeight: 1.05, textAlign: "center" }}>
-      {cur.w.map((w, i) => {
-        const p = springT(t - (w.s - 0.03), { stiffness: isBig ? 230 : 300, damping: isBig ? 11 : 15 }); const on = t >= w.s - 0.03;
-        const fs = w.st === "big" ? base : w.st === "dim" ? base * 0.62 : base;
-        const color = w.st === "big" ? (red ? C.red : final ? C.accent : "#fff4e3") : w.st === "dim" ? C.dim : "#fff4e3";
-        const shadow = w.st === "big" ? (final ? "0 4px 0 #a85f12, 0 8px 0 #5a3010, 0 30px 60px rgba(255,159,46,0.35)" : red ? "0 4px 0 #7a1a24, 0 8px 0 #3a0c12" : "0 4px 0 #3a3a4a, 0 8px 0 #1a1a24") : "none";
-        return <span key={i} style={{ display: "inline-block", fontSize: fs, color, textShadow: shadow, opacity: on ? clamp(p * 1.5, 0, 1) : 0, transform: `translateY(${lerp(40, 0, p)}px) scale(${lerp(0.7, 1, p)}) rotate(${lerp(i % 2 ? 4 : -4, 0, p)}deg)`, letterSpacing: w.st === "big" ? "-0.01em" : "0", whiteSpace: "nowrap", marginBottom: 8 }}>{w.t}</span>;
-      })}
-    </div>
-  );
-};
 export const Discord: React.FC = () => {
   const frame = useCurrentFrame(); const { fps } = useVideoConfig(); const t = frame / fps;
   const chunks = words as Chunk[]; const mouth = (env as number[])[Math.min(frame, env.length - 1)] ?? 0; const music = (menv as number[])[Math.min(frame, menv.length - 1)] ?? 0;
@@ -105,7 +85,7 @@ export const Discord: React.FC = () => {
       })}
       {/* lightning between the first two ants on "отношения" */}
       {zapOn && <svg width="96" height="96" style={{ position: "absolute", left: 1486, top: 338, transform: `scale(${zap}) rotate(${Math.sin(t * 40) * 6})`, transformOrigin: "50% 50%" }}><path d="M70 6 L32 62 L58 62 L40 114 L92 48 L64 48 Z" fill="#ffd166" stroke="#ff9f2e" strokeWidth="4" strokeLinejoin="round" /></svg>}
-      <Kinetic chunks={chunks} t={t} wide={cut} />
+      <Kinetic chunks={chunks} t={t} left={470} right={cut ? 80 : 600} base={96} big={150} finalAccent />
       <Grain opacity={0.08} vignette={0.65} />
       <AbsoluteFill style={{ background: "#000", opacity: fade, pointerEvents: "none" }} />
     </AbsoluteFill>

@@ -8,7 +8,8 @@ import { clamp, easeInCubic, easeOutBack, lerp, prog, rng, springT } from "../li
 import { Grain } from "../components/Grain";
 import { Avatar, Gesture, Mood } from "../components/Avatar";
 import { Ant } from "../components/Ant";
-import { C, Captions, Chunk } from "../components/Captions";
+import { C, Chunk } from "../components/Captions";
+import { Kinetic } from "../components/Kinetic";
 const E = tl.events;
 const W = 1920, H = 1080, HOR = 600;
 // ---------- pyramids (2.5D) ----------
@@ -229,7 +230,7 @@ export const Desert: React.FC = () => {
             {stampP > 0 && <div style={{ position: "absolute", right: -8, bottom: -34, fontFamily: F.display, fontWeight: 900, fontSize: 34, color: C.green, border: `4px solid ${C.green}`, borderRadius: 12, padding: "4px 14px", transform: `rotate(-9deg) scale(${lerp(1.8, 1, stampP)})`, opacity: clamp(stampP * 2, 0, 1), background: "rgba(10,8,16,0.8)", letterSpacing: "0.02em", whiteSpace: "nowrap" }}>НЕ ТАКИЕ ✓</div>}
           </div>
         )}
-        <Captions chunks={chunks} t={t} x={1150} bottom={70} size={44} />
+        <Kinetic chunks={chunks} t={t} left={400} right={400} top={300} bottom={300} base={100} big={160} shiftX={-210 * springT(t - E.pharaoh_in, { stiffness: 120, damping: 16 })} redFirst={false} />
       </AbsoluteFill>
       <Grain opacity={0.1} vignette={0.6} />
       <AbsoluteFill style={{ background: "#000", opacity: black, pointerEvents: "none" }} />
