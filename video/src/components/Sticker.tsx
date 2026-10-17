@@ -55,17 +55,25 @@ export const Sticker: React.FC<{ t: number; mouth: number; mood?: Mood; gestures
   const faceHand = pose === "facepalm";
   const sweat = clamp(angry * 0.6 + mood.squint, 0, 1);
   const fid = `stick-${id}`;
+  // "boil": noise seed steps every 4 frames, whole sticker wobbles in held poses every 6 frames
+  const seed = Math.floor((t * 30) / 4);
+  const step = Math.floor((t * 30) / 6); const wob = ((Math.sin(step * 12.9898) * 43758.5453) % 1 + 1) % 1;
+  const wobRot = (wob - 0.5) * 2.4; const wobScale = 1 + m * 0.02;
   return (
     <svg width={width} height={(width * 640) / 600} viewBox="-60 -40 720 720" style={{ display: "block", overflow: "visible" }}>
       <defs>
         <filter id={fid} x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
-          <feMorphology in="SourceAlpha" operator="dilate" radius="11" result="d" />
+          <feMorphology in="SourceAlpha" operator="dilate" radius="12" result="d" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="2" seed={seed} result="n" />
+          <feDisplacementMap in="d" in2="n" scale="13" xChannelSelector="R" yChannelSelector="G" result="dd" />
           <feFlood floodColor="#ffffff" result="w" />
-          <feComposite in="w" in2="d" operator="in" result="o" />
-          <feMerge><feMergeNode in="o" /><feMergeNode in="SourceGraphic" /></feMerge>
+          <feComposite in="w" in2="dd" operator="in" result="o" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="1" seed={seed + 7} result="n2" />
+          <feDisplacementMap in="SourceGraphic" in2="n2" scale="3" xChannelSelector="R" yChannelSelector="G" result="g" />
+          <feMerge><feMergeNode in="o" /><feMergeNode in="g" /></feMerge>
         </filter>
       </defs>
-      <g filter={`url(#${fid})`} transform={`translate(0 ${breathe + shoulders})`} stroke={INK} strokeWidth={SW} strokeLinejoin="round" strokeLinecap="round">
+      <g filter={`url(#${fid})`} transform={`translate(300 700) rotate(${wobRot}) scale(${wobScale}) translate(-300 -700) translate(0 ${breathe + shoulders})`} stroke={INK} strokeWidth={SW} strokeLinejoin="round" strokeLinecap="round">
         {/* body */}
         <path d="M70 700 C80 520 160 440 300 432 C440 440 520 520 530 700 Z" fill={BURLAP} />
         <path d="M250 436 L300 520 L350 436 Z" fill={BURLAP_D} />
