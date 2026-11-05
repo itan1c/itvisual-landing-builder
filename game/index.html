@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- artifact:head:start -->
+<title>Рыбный Замес</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;800&family=Rubik:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: phone-first one-screen arcade. HUD on top, live water scene in the middle, mobile-game tab bar at the bottom.
+   Night-lake palette: deep teal water, bone text, bobber orange as the single accent. Committed single dark theme. */
+:root{
+  --deep:#06151d; --water:#0b2733; --panel:#10333f; --panel-2:#164251; --panel-3:#1d5265;
+  --line:rgba(236,228,210,.13); --line-2:rgba(236,228,210,.26);
+  --ink:#ece4d2; --ink-dim:#a3b6bb; --ink-faint:#6f878d;
+  --bob:#ff6a2b; --bob-2:#ffb547; --ok:#5fcf8a; --bad:#ff5a6e; --info:#5aa9ff;
+  --font-display:'Unbounded','Rubik',system-ui,sans-serif;
+  --font-body:'Rubik',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:14px; --nav-h:64px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--deep);color:var(--ink);font:15px/1.4 var(--font-body);-webkit-text-size-adjust:100%;overflow:hidden}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+input,select{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--bob-2);outline-offset:2px}
+b,strong{font-weight:700}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+#app{height:100%;max-width:560px;margin:0 auto;display:flex;flex-direction:column;background:var(--water);position:relative;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0;
+  transition:transform .7s cubic-bezier(.6,-.2,.3,1.2)}
+#app.flip{transform:rotate(180deg)}
+#app.shake{animation:shake .32s infinite}
+@keyframes shake{0%{transform:translate(0,0)}25%{transform:translate(3px,-2px) rotate(.4deg)}50%{transform:translate(-3px,2px)}75%{transform:translate(2px,3px) rotate(-.4deg)}100%{transform:translate(0,0)}}
+#app.flip.shake{animation:shakeflip .32s infinite}
+@keyframes shakeflip{0%{transform:rotate(180deg) translate(0,0)}50%{transform:rotate(180.6deg) translate(-3px,2px)}100%{transform:rotate(180deg) translate(0,0)}}
+
+/* HUD */
+#hud{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0 8px;flex:none}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:13px;line-height:1;white-space:nowrap;max-width:40%;overflow:hidden;text-overflow:ellipsis}
+.chip span{overflow:hidden;text-overflow:ellipsis}
+.coins{font-family:var(--font-mono);font-weight:700;font-size:17px;display:inline-flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums;transition:transform .15s}
+.coins.pop{transform:scale(1.15);color:var(--bob-2)}
+#event-bar{flex:none;display:flex;align-items:center;gap:10px;background:linear-gradient(90deg,rgba(255,106,43,.22),rgba(255,181,71,.12));border:1px solid rgba(255,181,71,.35);border-radius:10px;padding:7px 10px;font-size:13px;margin-bottom:8px}
+#event-bar .ev-bar{height:4px;flex:1;background:rgba(236,228,210,.15);border-radius:2px;overflow:hidden;min-width:40px}
+#event-bar .ev-bar i{display:block;height:100%;background:var(--bob-2);width:100%;transform-origin:left}
+#event-bar b{white-space:nowrap}
+#event-bar small{color:var(--ink-dim);display:block;line-height:1.2}
+#event-bar .ev-text{min-width:0;flex:1}
+#curse-bar{flex:none;display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.curse-chip{font-size:12px;background:rgba(177,76,255,.18);border:1px solid rgba(177,76,255,.45);border-radius:999px;padding:4px 9px}
+
+/* Views */
+#views{flex:1;min-height:0;position:relative}
+.view{height:100%;overflow-y:auto;overflow-x:hidden;padding-bottom:12px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.view h2{font-family:var(--font-display);font-weight:800;font-size:18px;letter-spacing:-.01em;margin:14px 0 10px;text-wrap:balance}
+.view h2:first-child{margin-top:4px}
+.view h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-dim);margin:16px 0 8px;font-weight:500}
+
+/* Scene */
+#play{user-select:none;-webkit-user-select:none;touch-action:none}
+#scene{position:relative;height:clamp(220px,38vh,340px);border-radius:var(--r);overflow:hidden;background:#0a3344;border:1px solid var(--line);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}
+#scene.reeling .status{left:54px;right:80px}
+#scene.duel .status{right:150px}
+#scene.bite{box-shadow:0 0 0 3px var(--bob),inset 0 0 40px rgba(255,106,43,.35)}
+#scene.win{box-shadow:0 0 0 3px var(--ok)}
+#scene.lose{box-shadow:0 0 0 3px var(--bad)}
+#cv{display:block;width:100%;height:100%}
+.status{position:absolute;left:10px;top:10px;right:10px;text-align:left;font-size:13px;color:var(--ink);text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;display:flex;flex-direction:column;gap:2px}
+.status b{font-family:var(--font-display);font-size:14px;font-weight:500}
+.status.alert b{color:var(--bob-2);font-size:20px;font-weight:800;animation:pulse .35s infinite alternate}
+@keyframes pulse{from{transform:scale(1)}to{transform:scale(1.08)}}
+.bite-mark{position:absolute;left:58%;top:22%;transform:translate(-50%,-50%);font-family:var(--font-display);font-weight:800;font-size:46px;color:var(--bob-2);text-shadow:0 0 18px rgba(255,181,71,.8),0 2px 0 #000;animation:bang .25s infinite alternate;pointer-events:none}
+@keyframes bang{from{transform:translate(-50%,-50%) scale(1) rotate(-6deg)}to{transform:translate(-50%,-50%) scale(1.25) rotate(6deg)}}
+#duel-badge{position:absolute;right:10px;top:10px;background:rgba(6,21,29,.75);border:1px solid var(--line-2);border-radius:10px;padding:6px 9px;font-size:12px;display:flex;align-items:center;gap:8px;backdrop-filter:blur(4px)}
+#duel-badge b{font-family:var(--font-display);font-weight:500}
+#duel-badge button{color:var(--ink-dim);font-size:14px;padding:2px 4px}
+
+/* Reel minigame */
+#reel{position:absolute;inset:0;display:grid;grid-template-columns:28px 1fr 56px;gap:12px;padding:14px 14px 14px 14px;pointer-events:none}
+#reel .prog{align-self:stretch;border-radius:10px;background:rgba(0,0,0,.45);border:1px solid var(--line-2);position:relative;overflow:hidden}
+#reel .prog i{position:absolute;left:0;right:0;bottom:0;height:30%;background:linear-gradient(0deg,var(--ok),#b7f5cf);transition:height .08s linear}
+#reel .prog.low i{background:linear-gradient(0deg,var(--bad),#ffb3bd)}
+#reel .mid{display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:6px;min-width:0}
+#reel .hint{font-size:12px;color:var(--ink);text-shadow:0 1px 2px #000;background:rgba(6,21,29,.55);padding:6px 8px;border-radius:8px;max-width:100%}
+#reel .fishcard{font-size:13px;background:rgba(6,21,29,.65);padding:6px 9px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;gap:8px}
+#reel .fishcard .em{font-size:22px}
+#reel .track{position:relative;border-radius:14px;background:rgba(0,0,0,.45);border:1px solid var(--line-2);overflow:hidden}
+#reel .zone{position:absolute;left:3px;right:3px;background:rgba(95,207,138,.55);border:2px solid var(--ok);border-radius:10px;box-shadow:0 0 14px rgba(95,207,138,.5)}
+#reel .zone.hit{background:rgba(95,207,138,.85)}
+#reel .fishmark{position:absolute;left:50%;transform:translate(-50%,-50%);font-size:28px;line-height:1;filter:drop-shadow(0 2px 2px #000)}
+#reel .ticks{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 18%,rgba(236,228,210,.08) 18% 20%)}
+
+/* Action row */
+#action-row{display:flex;gap:10px;margin-top:10px}
+.btn-big{flex:1;font-family:var(--font-display);font-weight:800;font-size:18px;letter-spacing:.01em;background:var(--bob);color:#1a0b04;border-radius:var(--r);padding:16px 12px;box-shadow:0 6px 0 #b8431a,0 10px 20px rgba(0,0,0,.35);transition:transform .08s,box-shadow .08s;text-align:center}
+.btn-big:active{transform:translateY(4px);box-shadow:0 2px 0 #b8431a}
+.btn-big.hold{background:var(--ok);box-shadow:0 6px 0 #2d8a52}
+.btn-big.hold:active{box-shadow:0 2px 0 #2d8a52}
+.btn-big.hook{background:var(--bob-2);box-shadow:0 6px 0 #b77a1a;animation:pulse .3s infinite alternate}
+.btn-big:disabled{opacity:.55;transform:none;box-shadow:0 6px 0 #6b3a25}
+#gear-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.gear{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:12px;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
+.gear small{color:var(--ink-dim);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.gear b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#log{margin-top:10px;display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink-dim)}
+#log div{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-top:1px dashed var(--line)}
+#log div:first-child{color:var(--ink)}
+#log .r{margin-left:auto;font-family:var(--font-mono);white-space:nowrap}
+
+/* Cards & lists */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card + .card{margin-top:8px}
+.row{display:flex;align-items:center;gap:10px;min-width:0}
+.row > .grow{flex:1;min-width:0}
+.title{font-weight:700}
+.sub{color:var(--ink-dim);font-size:13px}
+.em{font-size:28px;line-height:1;flex:none;width:40px;text-align:center}
+.btn{background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:9px 12px;font-weight:500;font-size:14px;white-space:nowrap;transition:background .1s}
+.btn:active{background:var(--panel-2)}
+.btn.primary{background:var(--bob);color:#1a0b04;border-color:transparent;font-weight:700}
+.btn.ghost{background:transparent}
+.btn.ok{background:var(--ok);color:#06251a;border-color:transparent;font-weight:700}
+.btn:disabled{opacity:.45}
+.btn.small{padding:6px 9px;font-size:13px;border-radius:8px}
+.price{font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid currentColor;line-height:1.4;white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.stat{background:rgba(0,0,0,.2);border-radius:10px;padding:8px;min-width:0}
+.stat small{display:block;color:var(--ink-dim);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.stat b{font-family:var(--font-mono);font-weight:700;font-size:15px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.toolbar .grow{flex:1}
+.empty{color:var(--ink-dim);text-align:center;padding:28px 12px;border:1px dashed var(--line-2);border-radius:var(--r);line-height:1.5}
+.empty .em{font-size:40px;width:auto;margin-bottom:6px}
+.inv-item{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.inv-item:first-child{border-top:0}
+.inv-item .name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inv-item .meta{font-size:12px;color:var(--ink-dim);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.inv-item .meta .tag{font-size:10px;padding:1px 6px}
+.inv-item button{justify-self:end}
+
+/* Atlas */
+.atlas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.fish-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center;display:flex;flex-direction:column;gap:4px;min-width:0;position:relative}
+.fish-card .em{font-size:32px;width:auto;margin:0 auto}
+.fish-card.locked .em{filter:brightness(0) opacity(.45)}
+.fish-card .nm{font-size:12px;line-height:1.25;font-weight:500;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:2.5em}
+.fish-card .kg{font-family:var(--font-mono);font-size:11px;color:var(--ink-dim)}
+.fish-card .dot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%}
+.zone-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:16px 0 8px}
+.zone-head h3{margin:0}
+.zone-head .mono{font-size:12px;color:var(--ink-dim)}
+
+/* Shop */
+.shop-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.shop-tabs button{border-radius:999px;padding:7px 12px;border:1px solid var(--line);font-size:13px;background:var(--panel)}
+.shop-tabs button.on{background:var(--ink);color:var(--deep);border-color:transparent;font-weight:700}
+.spec{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-dim)}
+.spec b{color:var(--ink);font-family:var(--font-mono);font-weight:500}
+
+/* Friends */
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips .pchip{display:inline-flex;align-items:center;gap:6px;background:var(--panel-3);border-radius:999px;padding:5px 6px 5px 11px;font-size:13px}
+.chips .pchip button{width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.3);font-size:12px;line-height:1}
+.input{background:rgba(0,0,0,.3);border:1px solid var(--line-2);border-radius:10px;padding:9px 11px;min-width:0;width:100%}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:10px;overflow:hidden}
+.seg button{padding:7px 12px;font-size:13px}
+.seg button.on{background:var(--ink);color:var(--deep);font-weight:700}
+table.lb{width:100%;border-collapse:collapse;font-size:13px}
+table.lb th{text-align:left;color:var(--ink-dim);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:4px 6px}
+table.lb td{padding:7px 6px;border-top:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+table.lb td.n{font-family:var(--font-mono)}
+table.lb td:first-child{width:28px;text-align:center}
+.daily{border-color:rgba(255,181,71,.4);background:linear-gradient(135deg,rgba(255,181,71,.12),var(--panel))}
+
+/* Nav */
+#nav{flex:none;height:var(--nav-h);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:6px 0 calc(6px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--water)}
+#nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:10px;font-size:11px;color:var(--ink-dim);position:relative;min-width:0}
+#nav button .i{font-size:20px;line-height:1}
+#nav button.on{color:var(--ink);background:var(--panel)}
+#nav .badge{position:absolute;top:4px;right:calc(50% - 22px);background:var(--bob);color:#1a0b04;font-family:var(--font-mono);font-size:10px;font-weight:700;border-radius:999px;padding:1px 5px;line-height:1.4}
+
+/* Modal */
+#modal{position:fixed;inset:0;background:rgba(3,10,14,.72);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:0;backdrop-filter:blur(3px)}
+@media (min-width:600px){#modal{align-items:center;padding:24px}}
+.modal-card{width:100%;max-width:520px;max-height:min(88vh,88%);overflow-y:auto;background:var(--panel);border:1px solid var(--line-2);border-radius:20px 20px 0 0;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px;animation:up .25s ease-out}
+@media (min-width:600px){.modal-card{border-radius:20px;padding:22px}}
+@keyframes up{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.modal-card h2{font-family:var(--font-display);font-weight:800;font-size:20px;margin:0;text-wrap:balance;letter-spacing:-.01em}
+.modal-card p{margin:0;color:var(--ink-dim);line-height:1.5}
+.modal-actions{display:flex;gap:8px;flex-wrap:wrap}
+.modal-actions .btn{flex:1;text-align:center}
+.result{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0}
+.result .big{font-size:84px;line-height:1;filter:drop-shadow(0 8px 16px rgba(0,0,0,.5));animation:land .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes land{from{transform:scale(.3) rotate(-30deg);opacity:0}to{transform:none;opacity:1}}
+.result .nm{font-family:var(--font-display);font-weight:800;font-size:22px;text-wrap:balance}
+.result .flags{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.result .flag{font-size:12px;font-weight:700;padding:4px 9px;border-radius:999px;background:var(--bob-2);color:#1a0b04}
+.result .flag.new{background:var(--info);color:#061a2e}
+.result .flag.rec{background:var(--ok);color:#06251a}
+.result .sum{font-family:var(--font-mono);font-size:26px;font-weight:700}
+.result .q{font-style:italic;color:var(--ink-dim);font-size:13px;max-width:36ch}
+.rar-secret{background:linear-gradient(90deg,#fff,#ffb547,#ff5e8a,#5aa9ff,#fff);-webkit-background-clip:text;background-clip:text;color:transparent;animation:rainbow 2s linear infinite;background-size:200% auto}
+@keyframes rainbow{to{background-position:200% center}}
+.zone-item{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.zone-item:first-child{border-top:0}
+.zone-item .em{font-size:30px}
+.zone-item.cur .title::after{content:" · тут";color:var(--ok);font-weight:400}
+.rank{display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.rank .pos{font-family:var(--font-display);font-size:20px;font-weight:800;text-align:center}
+.forfeit{background:rgba(255,90,110,.12);border:1px dashed rgba(255,90,110,.5);border-radius:12px;padding:12px;text-align:center}
+.forfeit small{display:block;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.08em;font-size:11px;margin-bottom:4px}
+.forfeit b{font-size:16px}
+
+/* Toasts */
+#toasts{position:fixed;left:50%;bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;z-index:60;pointer-events:none;width:min(92vw,420px);align-items:center}
+.toast{background:var(--ink);color:var(--deep);border-radius:999px;padding:9px 14px;font-size:13px;font-weight:500;box-shadow:0 6px 20px rgba(0,0,0,.4);animation:toastin .2s ease-out;max-width:100%;text-align:center}
+.toast.bad{background:var(--bad);color:#fff}
+.toast.ok{background:var(--ok);color:#06251a}
+.toast.gold{background:var(--bob-2);color:#1a0b04}
+@keyframes toastin{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+<!-- artifact:head:end -->
+</head>
+<body>
+<div id="app">
+  <header id="hud">
+    <button class="chip" data-act="tab" data-arg="friends" title="Профиль">🎣 <span id="hud-name">Рыбак</span></button>
+    <div class="coins" id="hud-coins-wrap"><span id="hud-coins">0</span> 🪙</div>
+    <button class="chip" data-act="zones" title="Сменить локацию">📍 <span id="hud-zone">Пруд</span></button>
+  </header>
+  <div id="event-bar" hidden></div>
+  <div id="curse-bar" hidden></div>
+
+  <main id="views">
+    <section class="view" id="view-fish">
+      <div id="play">
+        <div id="scene">
+          <canvas id="cv"></canvas>
+          <div class="status" id="status"><b>Нажми «Забросить»</b><span>Пруд ждёт. Карась тоже.</span></div>
+          <div class="bite-mark" id="bite-mark" hidden>!</div>
+          <div id="duel-badge" hidden></div>
+          <div id="reel" hidden>
+            <div class="prog" id="prog"><i id="progfill"></i></div>
+            <div class="mid">
+              <div class="fishcard" id="reel-fish"></div>
+              <div class="hint" id="reel-hint">Зажми экран: зона всплывает. Отпусти: тонет. Держи рыбу в зелёном.</div>
+            </div>
+            <div class="track"><div class="ticks"></div><div class="zone" id="zone"></div><div class="fishmark" id="fishmark">🐟</div></div>
+          </div>
+        </div>
+        <div id="action-row"><button id="btn-cast" class="btn-big">Забросить</button></div>
+      </div>
+      <div id="gear-row">
+        <button class="gear" data-act="tab" data-arg="shop"><small>Удочка</small><b id="gear-rod">Палка</b></button>
+        <button class="gear" data-act="baits"><small>Наживка</small><b id="gear-bait">Червяк</b></button>
+        <button class="gear" data-act="daily"><small>Цель дня</small><b id="gear-daily">…</b></button>
+      </div>
+      <div id="log"></div>
+    </section>
+
+    <section class="view" id="view-bag" hidden>
+      <h2>Рюкзак</h2>
+      <div id="bag-body"></div>
+    </section>
+
+    <section class="view" id="view-shop" hidden>
+      <h2>Лавка Петровича</h2>
+      <div class="shop-tabs" id="shop-tabs">
+        <button data-act="shoptab" data-arg="rods" class="on">Удочки</button>
+        <button data-act="shoptab" data-arg="baits">Наживка</button>
+        <button data-act="shoptab" data-arg="zones">Локации</button>
+        <button data-act="shoptab" data-arg="bag">Рюкзак</button>
+      </div>
+      <div id="shop-body"></div>
+    </section>
+
+    <section class="view" id="view-atlas" hidden>
+      <h2>Атлас рыб</h2>
+      <div id="atlas-body"></div>
+    </section>
+
+    <section class="view" id="view-friends" hidden>
+      <h2>Тусовка</h2>
+      <div id="friends-body"></div>
+    </section>
+  </main>
+
+  <nav id="nav">
+    <button data-act="tab" data-arg="fish" class="on"><span class="i">🎣</span>Ловля</button>
+    <button data-act="tab" data-arg="bag"><span class="i">🎒</span>Рюкзак<span class="badge" id="bag-badge" hidden>0</span></button>
+    <button data-act="tab" data-arg="shop"><span class="i">🏪</span>Лавка</button>
+    <button data-act="tab" data-arg="atlas"><span class="i">📖</span>Атлас</button>
+    <button data-act="tab" data-arg="friends"><span class="i">🍻</span>Тусовка</button>
+  </nav>
+</div>
+<div id="modal" hidden><div class="modal-card" id="modal-card" role="dialog" aria-modal="true"></div></div>
+<div id="toasts"></div>
+
+<script>
+'use strict';
+/* ===================== helpers ===================== */
+const KEY='rybny-zames-v1';
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rnd(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>Math.round(n).toLocaleString('ru-RU');
+const fkg=kg=>kg>=100?Math.round(kg)+' кг':kg>=10?kg.toFixed(1)+' кг':kg>=1?kg.toFixed(2)+' кг':Math.round(kg*1000)+' г';
+const plural=(n,a,b,c)=>{const m=n%100,d=n%10;return m>=11&&m<=14?c:d===1?a:d>=2&&d<=4?b:c};
+function weighted(items,ws){let t=0;for(const w of ws)t+=w;let r=Math.random()*t;for(let i=0;i<items.length;i++){r-=ws[i];if(r<=0)return items[i]}return items[items.length-1]}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+
+/* ===================== data ===================== */
+const RARITY={
+  trash:   {t:-1,name:'Мусор',      color:'#8a7f74',diff:.8},
+  common:  {t:0, name:'Обычная',    color:'#aab5bd',diff:1},
+  uncommon:{t:1, name:'Необычная',  color:'#5fcf8a',diff:1.25},
+  rare:    {t:2, name:'Редкая',     color:'#5aa9ff',diff:1.6},
+  epic:    {t:3, name:'Эпическая',  color:'#b57bff',diff:2.0},
+  legend:  {t:4, name:'Легендарная',color:'#ffb547',diff:2.5},
+  mythic:  {t:5, name:'Мифическая', color:'#ff5e8a',diff:3.1},
+  secret:  {t:6, name:'СЕКРЕТНАЯ',  color:'#ffffff',diff:3.6},
+};
+const RAR_W={trash:14,common:58,uncommon:24,rare:9,epic:3,legend:1,mythic:.22,secret:.045};
+
+const ZONES=[
+  {id:0,n:'Деревенский пруд',short:'Пруд',p:0,e:'🌾',d:'Карась, комары и дед на берегу.',pal:['#1b2447','#c76a3c','#1f5a46','#06201a'],sun:'#ffb547'},
+  {id:1,n:'Городской пирс',short:'Пирс',p:600,e:'🌃',d:'Пахнет шаурмой и приключениями.',pal:['#090b1f','#3b2a5c','#163a52','#061420'],sun:'#ece4d2'},
+  {id:2,n:'Открытое море',short:'Море',p:3500,e:'⛵',d:'Берега не видно. Укачивает.',pal:['#0f3b6e','#5ab0e6','#0a5f8e','#02203a'],sun:'#fff3c4'},
+  {id:3,n:'Ледяная бухта',short:'Льды',p:14000,e:'🧊',d:'Минус тридцать. Клюёт только у смелых.',pal:['#0b1a2e','#7fb3d5','#2a7f9e','#0a3344'],sun:'#d9f3ff'},
+  {id:4,n:'Вулканический риф',short:'Вулкан',p:45000,e:'🌋',d:'Вода кипит. Рыба уже готовая.',pal:['#2a0a0a','#ff6a2b','#4a1b0e','#160504'],sun:'#ff3b1f'},
+  {id:5,n:'Бездна',short:'Бездна',p:160000,e:'🕳️',d:'Сюда не светит даже фонарик удильщика.',pal:['#010409','#061a2a','#02101d','#000306'],sun:'#1a3a4a'},
+];
+
+const FISH=[];
+function F(id,z,n,e,r,min,max,base,d){FISH.push({id,z,n,e,r,min,max,base,d:d||''})}
+function T(id,z,n,e){FISH.push({id,z,n,e,r:'trash',min:.2,max:2,base:1,d:'Это не рыба. Это позор.'})}
+function CB(z){FISH.push({id:'cboot'+z,z,n:'Проклятый Ботинок',e:'🥾',r:'trash',min:.5,max:1,base:1,curse:true,d:'Кто-то очень не хотел его терять.'})}
+// 0 Пруд
+F('karas',0,'Карась','🐟','common',.2,1.5,10,'Главный житель пруда. Философ.');
+F('peskar',0,'Пескарь','🐟','common',.03,.15,5,'Маленький, но гордый.');
+F('plotva',0,'Плотва','🐟','common',.1,.7,8,'Серебристая и наглая.');
+F('okun',0,'Окунь','🐠','uncommon',.2,2,22,'Колючий характер.');
+F('lin',0,'Линь','🐟','uncommon',.5,3,30,'Скользкий тип.');
+F('karp',0,'Карп','🐡','rare',1,15,80,'Толстый и довольный жизнью.');
+F('shchuka',0,'Щука','🐊','rare',1,12,95,'Зубастая. Не суй палец.');
+F('zkaras',0,'Золотой Карась','✨','legend',.5,3,900,'Желаний не исполняет. Только продаётся.');
+F('dkaras',0,'Карась-Депрессия','🥲','mythic',.3,1,4200,'Просто грустит. Как и ты после сессии.');
+F('somkach',0,'Сом-Качок','💪','secret',20,120,26000,'Жим лёжа 200. Клюёт только на уважение.');
+T('boot',0,'Старый Ботинок','👢');T('can',0,'Жестяная Банка','🥫');T('weed',0,'Водоросли','🌿');CB(0);
+// 1 Пирс
+F('bychok',1,'Бычок','🐟','common',.05,.4,9,'Привет из Одессы.');
+F('stavrida',1,'Ставрида','🐟','common',.1,.6,11,'Жарится за три минуты.');
+F('skumbria',1,'Скумбрия','🐟','common',.3,1.5,16,'Жирная. Это комплимент.');
+F('kefal',1,'Кефаль','🐟','uncommon',.5,3,32,'Шаланды полные её.');
+F('kambala',1,'Камбала','🥞','uncommon',.3,4,36,'Плоская, как твоя шутка.');
+F('mokun',1,'Морской Окунь','🐠','rare',.5,5,100,'Красный от злости.');
+F('osminog',1,'Осьминог-Интроверт','🐙','epic',1,10,330,'Восемь рук и ни одного рукопожатия.');
+F('mech',1,'Рыба-Меч','🗡️','epic',20,150,480,'Фехтует лучше тебя.');
+F('sunduk',1,'Пиратский Сундук','🎁','legend',5,30,1600,'Внутри 0 золота и 1 носок. Покупатели не знают.');
+F('shuba',1,'Селёдка под Шубой','🧥','mythic',.5,2,5200,'Новогодняя. Вечная. Клюёт 31 декабря чаще.');
+F('utka',1,'Резиновая Уточка 1998 года','🦆','secret',.1,.3,32000,'Пищит. Коллекционеры рыдают.');
+T('paket',1,'Пакет-Майка','🛍️');T('samokat',1,'Утопленный Самокат','🛴');CB(1);
+// 2 Море
+F('sardina',2,'Сардина','🐟','common',.05,.2,12,'В банке их было больше.');
+F('dorado',2,'Дорадо','🐠','common',.5,5,25,'Любимица ресторанов.');
+F('tunets',2,'Тунец','🐟','uncommon',10,80,70,'Консерва на максималках.');
+F('barrakuda',2,'Барракуда','🐟','uncommon',2,20,60,'Улыбается. Это плохо.');
+F('luna',2,'Рыба-Луна','🌝','rare',100,1000,220,'Огромная, круглая, бесполезная. Легенда.');
+F('skat',2,'Электрический Скат','⚡','rare',5,50,180,'Заряжает телефон. Не проверяй.');
+F('nyanka',2,'Акула-Нянька','🦈','epic',50,200,520,'Нянчит. Иногда кусает.');
+F('molot',2,'Акула-Молот','🔨','epic',100,400,650,'Пригодится на даче.');
+F('kit',2,'Кит-Подросток','🐳','legend',500,3000,2600,'Бунтует. Не слушает маму.');
+F('kraken',2,'Кракен (детёныш)','🦑','mythic',20,100,7500,'Пока маленький. Пока.');
+F('megalodon',2,'Мегалодон-Пенсионер','🦈','secret',2000,9000,65000,'Живёт в 2 км от пирса. Ходит в поликлинику.');
+T('yakor',2,'Ржавый Якорь','⚓');T('set',2,'Рваная Сеть','🪢');CB(2);
+// 3 Льды
+F('koryushka',3,'Корюшка','🥒','common',.05,.2,14,'Пахнет свежим огурцом. Серьёзно.');
+F('navaga',3,'Навага','🐟','common',.2,.8,15,'Северная, но тёплая внутри.');
+F('treska',3,'Треска','🐟','uncommon',1,10,60,'Печень дороже самой рыбы.');
+F('paltus',3,'Палтус','🐟','uncommon',5,50,90,'Лежит на дне и ждёт выходных.');
+F('golets',3,'Ледяной Голец','❄️','rare',1,8,200,'Хрустит, если уронить.');
+F('pingvin',3,'Пингвин-Контрабандист','🐧','rare',5,20,260,'Под курткой 40 кг корюшки.');
+F('narval',3,'Нарвал-Единорог','🦄','epic',300,1200,800,'Рог настоящий. Магия под вопросом.');
+F('morzh',3,'Морж-Бугай','🦭','epic',400,1500,900,'Ходит в качалку с Сомом.');
+F('sneel',3,'Снежный Угорь-Дракон','🐉','legend',50,300,3000,'Дышит метелью.');
+F('dedmoroz',3,'Дед Мороз-Сом','🎅','mythic',30,90,9500,'Подарков не привёз. Привёз себя.');
+F('yeti',3,'Йети на Льдине','🦍','secret',150,400,90000,'Просил не фоткать.');
+T('ldinka',3,'Льдинка','🧊');T('valenok',3,'Мокрый Валенок','🧦');CB(3);
+// 4 Вулкан
+F('kloun',4,'Рыба-Клоун','🤡','common',.1,.4,30,'Шутки такие же, как у тебя.');
+F('popugay',4,'Рыба-Попугай','🦜','common',.5,3,35,'Повторяет твои оправдания.');
+F('murena',4,'Мурена','🐍','uncommon',3,20,120,'Живёт в норе. Ненавидит гостей.');
+F('fugu',4,'Фугу (не ешь)','🐡','uncommon',.5,3,110,'Ядовитая. Вкусная. Выбирай.');
+F('lavaeel',4,'Лавовый Угорь','🔥','rare',5,30,350,'Температура тела 900°.');
+F('krab',4,'Крабзилла','🦀','rare',10,60,400,'Разрушил два пирса.');
+F('oskat',4,'Огненный Скат','☄️','epic',20,100,1100,'Летит. Горит. Клюёт.');
+F('omar',4,'Омар-Олигарх','🦞','epic',5,15,1500,'Яхта пришвартована рядом.');
+F('feniks',4,'Феникс-Рыба','🪶','legend',10,40,4500,'Сгорает, возрождается, снова клюёт.');
+F('magma',4,'Магма-Дракон','🐉','mythic',200,800,14000,'Спит в кратере. Ты его разбудил.');
+F('skovoroda',4,'Сковородка Шефа','🍳','secret',2,4,120000,'Рыба уже внутри. Шеф в ярости.');
+T('pemza',4,'Пемза','🪨');T('tapok',4,'Обугленный Тапок','🩴');CB(4);
+// 5 Бездна
+F('udil',5,'Удильщик','🔦','common',5,30,60,'Единственный фонарик в бездне.');
+F('kaplya',5,'Рыба-Капля','😩','common',1,5,70,'Выглядит как понедельник.');
+F('gadyuka',5,'Рыба-Гадюка','🐍','uncommon',2,10,200,'Зубы длиннее головы.');
+F('meduza',5,'Светящаяся Медуза','🪼','uncommon',1,20,220,'Ночник для русалок.');
+F('kalmar',5,'Гигантский Кальмар','🦑','rare',100,500,700,'Кракен вырос. Это он.');
+F('glaz',5,'Глубинный Глаз','👁️','rare',10,40,800,'Смотрит. Осуждает.');
+F('leviafan',5,'Левиафан','🐋','epic',1000,5000,2500,'Библейских размеров проблема.');
+F('rusal',5,'Русал на Пенсии','🧜‍♂️','epic',60,90,3000,'Поёт шансон.');
+F('ktulhu',5,'Ктулху-Малыш','🐙','legend',300,900,9000,'Фхтагн, но милый.');
+F('hozyain',5,'Хозяин Бездны','👑','mythic',1000,3000,30000,'Он сам решил, что клюнет.');
+F('iphone',5,'Потерянный Айфон Друга','📱','secret',.2,.3,200000,'1% заряда и 47 пропущенных от мамы.');
+T('noutbuk',5,'Утопленный Ноутбук','💻');T('cherep',5,'Череп (не твой)','💀');CB(5);
+const FISH_BY_ID=Object.fromEntries(FISH.map(f=>[f.id,f]));
+
+const MUT=[
+  {id:'shiny', n:'Блестящая',    m:1.5,w:8,  c:'#cfefff'},
+  {id:'gold',  n:'Золотая',      m:3,  w:2.5,c:'#ffd24a'},
+  {id:'ice',   n:'Ледяная',      m:2,  w:3,  c:'#8fe3ff'},
+  {id:'rad',   n:'Радиоактивная',m:4,  w:1.2,c:'#9dff4a'},
+  {id:'ghost', n:'Призрачная',   m:5,  w:.8, c:'#d9d2ff'},
+  {id:'giant', n:'Гигант',       m:2.5,w:1.5,c:'#ffb547',kg:2.5},
+  {id:'jacked',n:'Качок',        m:3,  w:1,  c:'#ff8a5a',kg:1.6},
+  {id:'tiktok',n:'Тиктокерша',   m:1.3,w:3,  c:'#ff5e8a'},
+  {id:'cursed',n:'Проклятая',    m:6,  w:.5, c:'#b14cff',curse:true},
+];
+const MUT_BY_ID=Object.fromEntries(MUT.map(m=>[m.id,m]));
+
+const RODS=[
+  {id:'stick',  n:'Палка с ниткой',   p:0,     luck:0,  zone:.22,bite:[3,8],  drain:1,  d:'Нашёл за сараем. Работает. Иногда.'},
+  {id:'bamboo', n:'Бамбуковая',       p:450,   luck:.15,zone:.25,bite:[2.5,7],drain:.95,d:'Гнётся, но не ломается. Как ты после трёх проигранных дуэлей.'},
+  {id:'carbon', n:'Карбоновая',       p:2800,  luck:.35,zone:.28,bite:[2,6],  drain:.9, d:'Лёгкая. Дорогая. Понтовая.'},
+  {id:'titan',  n:'Титановая',        p:13000, luck:.6, zone:.31,bite:[1.6,5],drain:.85,d:'Ей можно поднять холодильник. Проверено.'},
+  {id:'ded',    n:'Удочка Деда',      p:55000, luck:1,  zone:.34,bite:[1.5,4.5],drain:.8,trash:.5,d:'Дед сказал: «На дедовскую мусор не клюёт». Шанс мусора ×0.5.'},
+  {id:'trident',n:'Золотой Трезубец', p:260000,luck:1.8,zone:.38,bite:[1,4],  drain:.7,trash:.3,d:'Посейдон просил вернуть. Мы не вернём.'},
+];
+const ROD_BY_ID=Object.fromEntries(RODS.map(r=>[r.id,r]));
+const BAITS=[
+  {id:'worm',   n:'Червяк',            p:0,    pack:0, luck:0,  mut:1,  d:'Бесплатный. Бесконечный. Грустный.'},
+  {id:'bread',  n:'Хлебушек',          p:60,   pack:10,luck:.1, mut:1,  d:'Классика двора.'},
+  {id:'corn',   n:'Кукуруза',          p:180,  pack:10,luck:.25,mut:1.1,d:'Карпы сходят с ума.'},
+  {id:'firefly',n:'Светлячок',         p:700,  pack:10,luck:.5, mut:1.6,d:'Светится. Привлекает мутантов.'},
+  {id:'shark',  n:'Мясо акулы',        p:2800, pack:10,luck:.9, mut:1.3,bite:.7,d:'Клюёт быстрее. Пахнет ужасно.'},
+  {id:'energy', n:'Энергетик «Клёв»',  p:12000,pack:10,luck:1.5,mut:2.2,zone:.85,d:'Удача и мутации вверх, но руки трясутся: зона −15%.'},
+];
+const BAIT_BY_ID=Object.fromEntries(BAITS.map(b=>[b.id,b]));
+const BAGS=[{cap:30,p:0,n:'Авоська'},{cap:60,p:1500,n:'Рюкзак школьный'},{cap:120,p:9000,n:'Туристический'},{cap:250,p:40000,n:'Холодильник на колёсах'}];
+
+const EVENTS=[
+  {id:'gold',  n:'Золотой час',          e:'🌅',dur:45,d:'Золотые мутации ×8, цены ×1.5',mut:{gold:8},price:1.5},
+  {id:'shark', n:'Акулий замес',         e:'🦈',dur:45,d:'Редкие рыбы вдвое тяжелее, но дерутся сильнее',kgRare:2,diff:1.3},
+  {id:'meteor',n:'Метеоритный дождь',    e:'☄️',dur:45,d:'Радиоактивные мутации ×10',mut:{rad:10}},
+  {id:'moon',  n:'Полнолуние',           e:'🌕',dur:50,d:'Призрачные мутации ×10, поклёвка медленнее',mut:{ghost:10},bite:1.4},
+  {id:'drunk', n:'Пьяный рыбак',         e:'🍺',dur:40,d:'Управление перевёрнуто. Зато удача +0.6',invert:true,luck:.6},
+  {id:'trash', n:'Нашествие мусора',     e:'🗑️',dur:40,d:'Мусора ×3, но мифических тоже ×3. Хаос.',trashX:3,mythX:3},
+  {id:'sale',  n:'Распродажа у Петровича',e:'🏷️',dur:60,d:'Всё в лавке −30%',sale:.7},
+];
+const CURSES=[
+  {id:'flip',  n:'Экран перевернулся',e:'🙃',dur:30,d:'Играй вверх ногами. Удачи.'},
+  {id:'invert',n:'Руки-крюки',        e:'🤡',dur:40,d:'Управление перевёрнуто.'},
+  {id:'tiny',  n:'Зона-крошка',       e:'🔬',dur:40,d:'Зелёная зона вдвое меньше.'},
+  {id:'shake', n:'Трясучка',          e:'🫨',dur:30,d:'Экран трясёт. Не ты один.'},
+];
+const FORFEITS=[
+  'Говорит голосом карася до конца раунда','Делает всем чай или кофе','Следующую дуэль играет одной рукой','10 приседаний прямо сейчас',
+  'Поёт припев любой песни, заменяя все слова на «рыба»','Называет победителя «Капитан» до конца вечера','Рассказывает самую стыдную историю про себя',
+  'Стоит на одной ноге весь следующий раунд','Отвечает только вопросами 5 минут','Пишет в общий чат «Я проиграл Карасю-Депрессии»',
+  'Изображает поклёвку. Убедительно.','Моет посуду после посиделки','Говорит тост в честь Сома-Качка','Ставит на аватарку грустное селфи на час',
+  'Следующий раунд играет с закрытым одним глазом','Хвалит каждую рыбу победителя вслух','Делает массаж плеч победителю 1 минуту',
+];
+const QUOTES_WIN=['Красавчик!','Дед бы гордился.','Петрович уже считает деньги.','Рыба в шоке. Ты тоже.','Это надо в рамочку.','Ну всё, теперь ты рыбак.'];
+const QUOTES_LOSE=['Сорвалась. Она просто была не твоя.','Рыба ушла писать мемуары.','Леска сказала «нет».','Это была тренировка.','Карась передаёт привет.'];
+
+/* ===================== state ===================== */
+function defaultState(){return{
+  v:1,name:'Рыбак',coins:0,rod:'stick',rods:['stick'],bait:'worm',baits:{},bag:0,zone:0,zones:[0],
+  inv:[],atlas:{},
+  stats:{casts:0,catches:0,missed:0,lost:0,earned:0,bestKg:null,bestPrice:null,streak:0,bestStreak:0,trash:0,curses:0,secrets:0},
+  friends:{},daily:{date:'',done:false,count:0},sound:true,seenIntro:false,nextId:1,duelsHosted:0
+}}
+let S=defaultState();
+function load(){try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);S=Object.assign(defaultState(),d);S.stats=Object.assign(defaultState().stats,d.stats||{});S.daily=Object.assign(defaultState().daily,d.daily||{});if(!ROD_BY_ID[S.rod])S.rod='stick';if(!BAIT_BY_ID[S.bait])S.bait='worm';}}catch(e){}}
+let saveT=null;
+function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}},250)}
+
+const curRod=()=>ROD_BY_ID[S.rod];
+const curBait=()=>BAIT_BY_ID[S.bait];
+const bagCap=()=>BAGS[S.bag].cap;
+const luck=()=>curRod().luck+curBait().luck+(curEvent?.luck||0);
+
+/* runtime */
+let phase='idle',castAt=0,holding=false,biteTimer=null,castTimer=null,hooked=null,reel=null,curEvent=null,eventEnds=0,eventTimer=null,curses=[],duel=null,audio=null;
+let shopTab='rods',tab='fish';
+
+/* ===================== audio ===================== */
+function ac(){if(!S.sound)return null;try{if(!audio)audio=new (window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume();return audio}catch(e){return null}}
+function beep(f,dur,type='sine',g=.08,when=0){const a=ac();if(!a)return;const o=a.createOscillator(),v=a.createGain();o.type=type;o.frequency.value=f;v.gain.setValueAtTime(0,a.currentTime+when);v.gain.linearRampToValueAtTime(g,a.currentTime+when+.01);v.gain.exponentialRampToValueAtTime(.0001,a.currentTime+when+dur);o.connect(v).connect(a.destination);o.start(a.currentTime+when);o.stop(a.currentTime+when+dur+.02)}
+const SFX={
+  cast(){beep(520,.12,'triangle',.05);beep(380,.18,'triangle',.05,.1)},
+  bite(){beep(880,.08,'square',.07);beep(1180,.1,'square',.07,.09);try{navigator.vibrate&&navigator.vibrate([40,30,60])}catch(e){}},
+  win(t){[523,659,784,1046].forEach((f,i)=>beep(f,.16,'triangle',.07,i*.08));if(t>=4)[1318,1568,2093].forEach((f,i)=>beep(f,.3,'sine',.06,.4+i*.1))},
+  lose(){beep(300,.25,'sawtooth',.05);beep(180,.4,'sawtooth',.05,.15)},
+  coin(){beep(1500,.06,'square',.04);beep(2000,.08,'square',.04,.05)},
+  curse(){[400,300,200,120].forEach((f,i)=>beep(f,.2,'sawtooth',.06,i*.12))},
+  tick(){beep(1000,.03,'square',.03)},
+};
+
+/* ===================== UI basics ===================== */
+function toast(msg,kind=''){const t=document.createElement('div');t.className='toast '+kind;t.textContent=msg;$('#toasts').appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s'},2200);setTimeout(()=>t.remove(),2600)}
+function openModal(html){$('#modal-card').innerHTML=html;$('#modal').hidden=false}
+let nextModal=null;
+function queueModal(html){if($('#modal').hidden)openModal(html);else nextModal=html}
+function closeModal(){$('#modal').hidden=true;$('#modal-card').innerHTML='';if(nextModal){const h=nextModal;nextModal=null;openModal(h)}}
+function setTab(t){tab=t;$$('.view').forEach(v=>v.hidden=v.id!=='view-'+t);$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.arg===t));renderTab()}
+function renderTab(){if(tab==='bag')renderBag();else if(tab==='shop')renderShop();else if(tab==='atlas')renderAtlas();else if(tab==='friends')renderFriends()}
+function rarTag(r){const R=RARITY[r];return `<span class="tag" style="color:${R.color}">${R.name}</span>`}
+function mutTag(m){return m?`<span class="tag" style="color:${m.c}">${m.n}</span>`:''}
+function logLine(html,right=''){const l=$('#log');const d=document.createElement('div');d.innerHTML=`<span>${html}</span>${right?`<span class="r">${right}</span>`:''}`;l.prepend(d);while(l.children.length>6)l.lastChild.remove()}
+function setStatus(title,sub,alert=false){const s=$('#status');s.classList.toggle('alert',alert);s.innerHTML=`<b>${title}</b>${sub?`<span>${sub}</span>`:''}`}
+function coinsPop(){const w=$('#hud-coins-wrap');w.classList.add('pop');setTimeout(()=>w.classList.remove('pop'),180)}
+
+function renderHUD(){
+  $('#hud-name').textContent=S.name;
+  $('#hud-coins').textContent=fmt(S.coins);
+  $('#hud-zone').textContent=ZONES[S.zone].short;
+  $('#gear-rod').textContent=curRod().n;
+  const b=curBait();$('#gear-bait').textContent=b.n+(b.id==='worm'?'':' ×'+(S.baits[b.id]||0));
+  const dl=dailyTarget();$('#gear-daily').textContent=S.daily.done?'Выполнено ✓':dl.f.n;
+  const n=S.inv.length;const bb=$('#bag-badge');bb.hidden=n===0;bb.textContent=n>=bagCap()?'FULL':n;
+  renderCurses();
+}
+function renderEventBar(){
+  const eb=$('#event-bar');
+  if(!curEvent){eb.hidden=true;return}
+  eb.hidden=false;
+  const left=Math.max(0,eventEnds-Date.now());
+  eb.innerHTML=`<span style="font-size:20px">${curEvent.e}</span><div class="ev-text"><b>${curEvent.n}</b><small>${curEvent.d}</small></div><div class="ev-bar"><i style="transform:scaleX(${(left/(curEvent.dur*1000)).toFixed(3)})"></i></div><span class="mono" style="font-size:12px">${Math.ceil(left/1000)}с</span>`;
+}
+function renderCurses(){
+  const cb=$('#curse-bar');const now=Date.now();curses=curses.filter(c=>c.ends>now);
+  cb.hidden=curses.length===0;
+  cb.innerHTML=curses.map(c=>`<span class="curse-chip">${c.e} ${c.n} · ${Math.ceil((c.ends-now)/1000)}с</span>`).join('');
+  const app=$('#app');app.classList.toggle('flip',hasCurse('flip'));app.classList.toggle('shake',hasCurse('shake'));
+}
+const hasCurse=id=>curses.some(c=>c.id===id&&c.ends>Date.now());
+
+/* ===================== daily ===================== */
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function dailyTarget(){
+  const day=todayStr();
+  if(S.daily.date!==day){S.daily.date=day;S.daily.done=false;save()}
+  const rng=mulberry(hashStr('zames-'+day));
+  const pool=FISH.filter(f=>f.z<=2&&RARITY[f.r].t>=0&&RARITY[f.r].t<=3);
+  const f=pool[Math.floor(rng()*pool.length)];
+  const reward=Math.round(Math.max(150,f.base*10));
+  return{f,reward,day};
+}
+
+/* ===================== fishing core ===================== */
+function rollFish(){
+  const z=S.zone,L=luck(),rod=curRod(),ev=curEvent;
+  const pool=FISH.filter(f=>f.z===z);
+  const ws=pool.map(f=>{
+    const R=RARITY[f.r];let w=RAR_W[f.r];
+    if(f.r==='trash'){w=w/(1+L)*(rod.trash||1)*(ev?.trashX||1);if(f.curse)w*=.25}
+    else{w*=Math.pow(1+L*.5,R.t);if(f.r==='mythic'&&ev?.mythX)w*=ev.mythX}
+    w/=pool.filter(g=>g.r===f.r).length;
+    return w;
+  });
+  return weighted(pool,ws);
+}
+function rollMut(f){
+  if(f.r==='trash')return null;
+  const bait=curBait(),ev=curEvent;
+  const items=[null,...MUT];
+  const ws=[160,...MUT.map(m=>m.w*bait.mut*(ev?.mut?.[m.id]||1)*(S.zone===3&&m.id==='ice'?3:1)*(S.zone===4&&m.id==='rad'?2:1)*(S.zone===5&&m.id==='ghost'?3:1))];
+  return weighted(items,ws);
+}
+function rollKg(f,mut){
+  let kg=f.min+(f.max-f.min)*Math.pow(Math.random(),1.8);
+  if(mut?.kg)kg*=mut.kg;
+  if(curEvent?.kgRare&&RARITY[f.r].t>=2)kg*=curEvent.kgRare;
+  return Math.round(kg*1000)/1000;
+}
+function priceOf(f,kg,mut){
+  if(f.r==='trash')return ri(1,3);
+  const avg=(f.min+f.max)/2;
+  const p=f.base*Math.pow(kg/avg,.7)*(mut?mut.m:1)*(curEvent?.price||1);
+  return Math.max(1,Math.round(p));
+}
+function biteDelay(){const r=curRod().bite;let t=rnd(r[0],r[1]);t*=(curBait().bite||1)*(curEvent?.bite||1);return t*1000}
+
+function cast(){
+  if(phase!=='idle')return;
+  if(!duel&&S.inv.length>=bagCap()){toast('Рюкзак полон. Продай улов у Петровича','bad');setTab('bag');return}
+  const b=curBait();
+  if(!duel&&b.id!=='worm'){if((S.baits[b.id]||0)<=0){S.bait='worm';toast('Наживка кончилась, ловим на червяка');renderHUD()}else{S.baits[b.id]--}}
+  phase='casting';castAt=performance.now();S.stats.casts++;save();
+  SFX.cast();
+  $('#btn-cast').disabled=true;$('#btn-cast').textContent='Летит…';
+  setStatus('Заброс!','Поплавок летит красиво.');
+  castTimer=setTimeout(()=>{
+    phase='waiting';
+    $('#btn-cast').disabled=false;$('#btn-cast').textContent='Ждём поклёвку…';$('#btn-cast').classList.remove('hook','hold');
+    setStatus('Ждём поклёвку…','Когда дёрнется — жми куда угодно.');
+    biteTimer=setTimeout(onBite,biteDelay());
+  },650);
+  renderHUD();
+}
+function onBite(){
+  if(phase!=='waiting')return;
+  const f=rollFish();const mut=rollMut(f);
+  hooked={f,mut,t:RARITY[f.r].t};
+  phase='bite';
+  const marks=hooked.t>=4?'!!!':hooked.t>=2?'!!':'!';
+  const bm=$('#bite-mark');bm.hidden=false;bm.textContent=marks;
+  $('#scene').classList.add('bite');
+  $('#btn-cast').textContent='ПОДСЕЧЬ!';$('#btn-cast').classList.add('hook');
+  setStatus('ТЯНИ!','Жми скорее!',true);
+  SFX.bite();
+  biteTimer=setTimeout(()=>missed(),hooked.t>=4?1300:1700);
+}
+function missed(){
+  if(phase!=='bite')return;
+  clearTimeout(biteTimer);
+  const was=hooked;hooked=null;S.stats.missed++;S.stats.streak=0;save();
+  endCast('lose');
+  logLine('💨 Прозевал поклёвку'+(was.t>=4?' <b>чего-то легендарного</b>':''),'');
+  setStatus('Прозевал…','Рыба уплыла, пока ты моргал.');
+  SFX.lose();
+  castDone('missed',null);
+}
+function hook(){
+  if(phase!=='bite')return;
+  clearTimeout(biteTimer);
+  $('#bite-mark').hidden=true;$('#scene').classList.remove('bite');
+  startReel();
+}
+function startReel(){
+  phase='reel';
+  const f=hooked.f,R=RARITY[f.r],rod=curRod(),bait=curBait();
+  let z=rod.zone*(bait.zone||1);if(hasCurse('tiny'))z*=.5;z=Math.max(.1,z);
+  const diff=R.diff*(curEvent?.diff||1)*(hooked.mut?.id==='jacked'?1.3:1)*(hooked.mut?.id==='giant'?1.15:1);
+  const now=performance.now();
+  reel={z,p:.5,v:0,f:.5,tgt:.5,next:0,prog:.3,diff,spd:1.4+diff*.9,drain:.2*rod.drain*Math.pow(diff,.7),gain:.3,last:now};
+  const rl=$('#reel');rl.hidden=false;$('#scene').classList.add('reeling');
+  const hidden=f.r==='secret'||f.r==='mythic';
+  $('#reel-fish').innerHTML=`<span class="em">${hidden?'❓':f.e}</span><span>${hidden?'<b>Что-то огромное…</b>':'<b>'+esc(f.n)+'</b>'}<br>${rarTag(f.r)}</span>`;
+  $('#fishmark').textContent=hidden?'❓':f.e;
+  const inv=!!(curEvent?.invert)!==hasCurse('invert');
+  $('#reel-hint').textContent=inv?'ВНИМАНИЕ: управление перевёрнуто. Зажми, чтобы зона ТОНУЛА.':'Зажми экран: зона всплывает. Отпусти: тонет. Держи рыбу в зелёном.';
+  $('#btn-cast').textContent='ДЕРЖИ';$('#btn-cast').classList.remove('hook');$('#btn-cast').classList.add('hold');
+  setStatus('Вываживай!','Зажми и отпускай. Не паникуй.');
+  requestAnimationFrame(stepReel);
+}
+function stepReel(now){
+  if(phase!=='reel'||!reel)return;
+  const r=reel;let dt=Math.min(.05,(now-r.last)/1000);r.last=now;
+  const inv=!!(curEvent?.invert)!==hasCurse('invert');
+  const up=inv?!holding:holding;
+  r.v+=(up?2.6:-2.6)*dt;r.v*=Math.max(0,1-1.5*dt);r.p+=r.v*dt;
+  const h=r.z/2;
+  if(r.p<h){r.p=h;if(r.v<0)r.v=-r.v*.25}
+  if(r.p>1-h){r.p=1-h;if(r.v>0)r.v=-r.v*.25}
+  r.next-=dt;if(r.next<=0){r.tgt=Math.random();r.next=rnd(.35,1.3)/Math.max(1,r.diff*.8)}
+  if(r.diff>=1.9&&Math.random()<.6*dt)r.f=clamp(r.f+rnd(-.3,.3),0,1);
+  r.f+=(r.tgt-r.f)*Math.min(1,dt*r.spd);
+  const inside=Math.abs(r.f-r.p)<h;
+  r.prog+=(inside?r.gain:-r.drain)*dt;
+  const zone=$('#zone');zone.style.top=((1-(r.p+h))*100)+'%';zone.style.height=(r.z*100)+'%';zone.classList.toggle('hit',inside);
+  $('#fishmark').style.top=((1-r.f)*100)+'%';
+  const pf=$('#progfill');pf.style.height=(clamp(r.prog,0,1)*100)+'%';$('#prog').classList.toggle('low',r.prog<.25);
+  if(r.prog>=1){finishReel(true);return}
+  if(r.prog<=0){finishReel(false);return}
+  requestAnimationFrame(stepReel);
+}
+function finishReel(win){
+  $('#reel').hidden=true;reel=null;
+  const h=hooked;hooked=null;
+  if(win)caught(h);else lost(h);
+}
+function endCast(cls){
+  phase='idle';holding=false;
+  const sc=$('#scene');sc.classList.remove('bite','reeling');sc.classList.add(cls);setTimeout(()=>sc.classList.remove(cls),500);
+  $('#bite-mark').hidden=true;
+  const b=$('#btn-cast');b.disabled=false;b.textContent='Забросить';b.classList.remove('hook','hold');
+}
+function lost(h){
+  S.stats.lost++;S.stats.streak=0;save();
+  endCast('lose');
+  SFX.lose();
+  const big=h.t>=4;
+  logLine(`💔 Сорвалась: ${big?'<b>'+esc(h.f.n)+'</b>':esc(h.f.n)}`);
+  setStatus('Сорвалась!',pick(QUOTES_LOSE));
+  if(big)toast('Ты упустил '+h.f.n+'. Друзья будут смеяться.','bad');
+  castDone('lost',null);
+}
+function caught(h){
+  const f=h.f,mut=h.mut;
+  const kg=rollKg(f,mut);const price=priceOf(f,kg,mut);
+  const item={id:S.nextId++,f:f.id,kg,mut:mut?mut.id:null,price,at:Date.now()};
+  const flags=[];
+  if(f.r==='trash'){S.stats.trash++;S.stats.streak=0}else{S.stats.catches++;S.stats.streak++;if(S.stats.streak>S.stats.bestStreak)S.stats.bestStreak=S.stats.streak}
+  if(f.r==='secret')S.stats.secrets++;
+  // atlas
+  const a=S.atlas[f.id];
+  if(!a){S.atlas[f.id]={n:1,best:kg,mut:item.mut};if(f.r!=='trash')flags.push({c:'new',t:'Новая в атласе'})}
+  else{a.n++;if(kg>a.best){a.best=kg;a.mut=item.mut;if(f.r!=='trash')flags.push({c:'rec',t:'Рекорд вида'})}}
+  if(f.r!=='trash'){
+    if(!S.stats.bestKg||kg>S.stats.bestKg.kg){S.stats.bestKg={f:f.id,kg,mut:item.mut};if(S.stats.casts>3)flags.push({c:'rec',t:'Самая тяжёлая'})}
+    if(!S.stats.bestPrice||price>S.stats.bestPrice.price){S.stats.bestPrice={f:f.id,kg,mut:item.mut,price};if(S.stats.casts>3)flags.push({c:'rec',t:'Самая дорогая'})}
+  }
+  if(mut)flags.push({c:'',t:mut.n});
+  // daily
+  const dl=dailyTarget();let dailyHit=false;
+  if(!duel&&!S.daily.done&&dl.f.id===f.id){S.daily.done=true;S.daily.count++;S.coins+=dl.reward;dailyHit=true;flags.push({c:'',t:'Цель дня +'+fmt(dl.reward)})}
+  // where it goes
+  if(duel){const pl=duel.players[duel.i];pl.score+=price;pl.catches++;if(!pl.best||price>pl.best.price)pl.best={f:f.id,kg,mut:item.mut,price}}
+  else S.inv.push(item);
+  save();
+  endCast('win');
+  SFX.win(h.t);
+  if(dailyHit){SFX.coin();coinsPop()}
+  logLine(`${f.e} ${esc(f.n)} · ${fkg(kg)}${mut?' · '+mut.n:''}`,`${fmt(price)} 🪙`);
+  setStatus('Поймал!',pick(QUOTES_WIN));
+  // curse trigger
+  let curse=null;
+  if(f.curse||mut?.curse){if(f.curse||Math.random()<.5)curse=applyCurse()}
+  showResult(item,f,mut,flags,curse);
+  renderHUD();
+  castDone('caught',item);
+}
+function showResult(item,f,mut,flags,curse){
+  const R=RARITY[f.r];
+  const nmCls=f.r==='secret'?'nm rar-secret':'nm';
+  openModal(`
+    <div class="result">
+      <div class="big">${f.e}</div>
+      <div class="${nmCls}">${esc(f.n)}</div>
+      <div>${rarTag(f.r)} ${mutTag(mut)}</div>
+      <div class="sum">${fkg(item.kg)} · ${fmt(item.price)} 🪙</div>
+      ${flags.length?`<div class="flags">${flags.map(x=>`<span class="flag ${x.c}">${esc(x.t)}</span>`).join('')}</div>`:''}
+      <div class="q">${esc(f.d)}</div>
+      ${curse?`<div class="forfeit" style="width:100%"><small>Проклятие!</small><b>${curse.e} ${curse.n}</b><div class="sub">${curse.d} ${curse.dur} секунд.</div></div>`:''}
+      ${duel?`<div class="sub">Дуэль: ${esc(duel.players[duel.i].n)} +${fmt(item.price)}</div>`:''}
+    </div>
+    <div class="modal-actions">
+      ${f.r!=='trash'&&!duel?`<button class="btn" data-act="share-catch" data-arg="${item.id}">Похвастаться</button>`:''}
+      <button class="btn primary" data-act="close-cast">Ещё заброс</button>
+    </div>`);
+}
+function castDone(outcome,item){
+  if(duel)duelAfterCast();
+}
+
+/* ===================== events & curses ===================== */
+function scheduleEvent(){clearTimeout(eventTimer);eventTimer=setTimeout(()=>startEvent(pick(EVENTS)),rnd(90,180)*1000)}
+function startEvent(ev){
+  curEvent=ev;eventEnds=Date.now()+ev.dur*1000;
+  renderEventBar();
+  toast(ev.e+' '+ev.n+': '+ev.d,'gold');
+  SFX.coin();
+  if(ev.invert)SFX.curse();
+  clearTimeout(eventTimer);eventTimer=setTimeout(endEvent,ev.dur*1000);
+  if(tab==='shop')renderShop();
+}
+function endEvent(){const was=curEvent;curEvent=null;renderEventBar();if(was)toast(was.n+' закончился');scheduleEvent();if(tab==='shop')renderShop()}
+function applyCurse(){
+  const c=pick(CURSES.filter(c=>!hasCurse(c.id)))||CURSES[1];
+  curses.push({...c,ends:Date.now()+c.dur*1000});
+  S.stats.curses++;save();
+  SFX.curse();
+  renderCurses();
+  return c;
+}
+setInterval(()=>{renderEventBar();if(curses.length)renderCurses()},1000);
+
+/* ===================== inventory & shop ===================== */
+function sellItems(items){
+  if(!items.length)return;
+  const sum=items.reduce((s,i)=>s+i.price,0);
+  const ids=new Set(items.map(i=>i.id));
+  S.inv=S.inv.filter(i=>!ids.has(i.id));
+  S.coins+=sum;S.stats.earned+=sum;save();
+  SFX.coin();coinsPop();
+  toast(`Продано ${items.length} ${plural(items.length,'штука','штуки','штук')} за ${fmt(sum)} 🪙`,'ok');
+  renderHUD();renderBag();
+}
+function renderBag(){
+  const body=$('#bag-body');
+  const inv=[...S.inv].sort((a,b)=>b.price-a.price);
+  const total=inv.reduce((s,i)=>s+i.price,0);
+  const trash=inv.filter(i=>FISH_BY_ID[i.f].r==='trash');
+  if(!inv.length){body.innerHTML=`<div class="empty"><div class="em">🎒</div>Пусто. Даже ботинка нет.<br><button class="btn primary" data-act="tab" data-arg="fish" style="margin-top:12px">К воде</button></div>`;return}
+  body.innerHTML=`
+    <div class="toolbar">
+      <div class="grow"><div class="sub">Слоты</div><b class="mono">${inv.length} / ${bagCap()}</b></div>
+      <div><div class="sub">Стоимость</div><b class="mono">${fmt(total)} 🪙</b></div>
+    </div>
+    <div class="toolbar">
+      <button class="btn ok grow" data-act="sell-all">Продать всё · ${fmt(total)}</button>
+      ${trash.length?`<button class="btn" data-act="sell-trash">Мусор (${trash.length})</button>`:''}
+      ${inv.length>1?`<button class="btn" data-act="sell-dupes" title="Оставить лучшую рыбу каждого вида">Дубли</button>`:''}
+    </div>
+    <div class="card" style="padding:4px 12px">
+      ${inv.map(i=>{const f=FISH_BY_ID[i.f];const m=i.mut?MUT_BY_ID[i.mut]:null;return `
+      <div class="inv-item">
+        <span class="em">${f.e}</span>
+        <div style="min-width:0"><div class="name">${esc(f.n)}</div><div class="meta"><span class="mono">${fkg(i.kg)}</span>${rarTag(f.r)}${mutTag(m)}</div></div>
+        <button class="btn small" data-act="sell-one" data-arg="${i.id}"><span class="price">${fmt(i.price)}</span> 🪙</button>
+      </div>`}).join('')}
+    </div>`;
+}
+function salePrice(p){return Math.round(p*(curEvent?.sale||1))}
+function renderShop(){
+  $$('#shop-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.arg===shopTab));
+  const body=$('#shop-body');
+  const sale=curEvent?.sale?`<div class="card daily" style="margin-bottom:8px">🏷️ Распродажа: всё −30% ещё ${Math.ceil((eventEnds-Date.now())/1000)} с</div>`:'';
+  if(shopTab==='rods'){
+    body.innerHTML=sale+RODS.map(r=>{const own=S.rods.includes(r.id),cur=S.rod===r.id,p=salePrice(r.p);return `
+      <div class="card">
+        <div class="row"><span class="em">🎣</span><div class="grow"><div class="title">${r.n}${cur?' <span class="tag" style="color:var(--ok)">в руках</span>':''}</div><div class="sub">${r.d}</div></div></div>
+        <div class="spec"><span>Удача <b>+${r.luck}</b></span><span>Зона <b>${Math.round(r.zone*100)}%</b></span><span>Поклёвка <b>${r.bite[0]}–${r.bite[1]}с</b></span><span>Усталость <b>×${r.drain}</b></span></div>
+        <div class="row">${own?(cur?'<button class="btn" disabled>Выбрана</button>':`<button class="btn primary" data-act="equip-rod" data-arg="${r.id}">Взять</button>`):`<button class="btn ${S.coins>=p?'primary':''}" data-act="buy-rod" data-arg="${r.id}" ${S.coins>=p?'':'disabled'}>Купить · <span class="price">${fmt(p)}</span> 🪙</button>`}</div>
+      </div>`}).join('');
+  }else if(shopTab==='baits'){
+    body.innerHTML=sale+BAITS.map(b=>{const n=b.id==='worm'?'∞':(S.baits[b.id]||0),cur=S.bait===b.id,p=salePrice(b.p);return `
+      <div class="card">
+        <div class="row"><span class="em">${{worm:'🪱',bread:'🍞',corn:'🌽',firefly:'✨',shark:'🥩',energy:'🧃'}[b.id]}</span><div class="grow"><div class="title">${b.n}${cur?' <span class="tag" style="color:var(--ok)">на крючке</span>':''}</div><div class="sub">${b.d}</div></div><b class="mono">×${n}</b></div>
+        <div class="spec"><span>Удача <b>+${b.luck}</b></span><span>Мутации <b>×${b.mut}</b></span>${b.bite?`<span>Поклёвка <b>×${b.bite}</b></span>`:''}${b.zone?`<span>Зона <b>×${b.zone}</b></span>`:''}</div>
+        <div class="row">
+          ${b.pack?`<button class="btn ${S.coins>=p?'primary':''}" data-act="buy-bait" data-arg="${b.id}" ${S.coins>=p?'':'disabled'}>+${b.pack} шт · <span class="price">${fmt(p)}</span> 🪙</button>`:''}
+          ${cur?'<button class="btn" disabled>Выбрана</button>':`<button class="btn" data-act="equip-bait" data-arg="${b.id}" ${(b.id==='worm'||(S.baits[b.id]||0)>0)?'':'disabled'}>Насадить</button>`}
+        </div>
+      </div>`}).join('');
+  }else if(shopTab==='zones'){
+    body.innerHTML=sale+`<div class="card" style="padding:4px 12px">`+ZONES.map(z=>zoneRow(z)).join('')+`</div>`;
+  }else{
+    body.innerHTML=sale+BAGS.map((b,i)=>{const own=i<=S.bag,cur=i===S.bag,p=salePrice(b.p);return `
+      <div class="card"><div class="row"><span class="em">${['👜','🎒','🧳','🧊'][i]}</span><div class="grow"><div class="title">${b.n}${cur?' <span class="tag" style="color:var(--ok)">твой</span>':''}</div><div class="sub">${b.cap} слотов</div></div>
+      ${own?'':(i===S.bag+1?`<button class="btn ${S.coins>=p?'primary':''}" data-act="buy-bag" ${S.coins>=p?'':'disabled'}>Купить · <span class="price">${fmt(p)}</span> 🪙</button>`:'<span class="sub">позже</span>')}</div></div>`}).join('');
+  }
+}
+function zoneRow(z){
+  const own=S.zones.includes(z.id),cur=S.zone===z.id,p=salePrice(z.p);
+  const all=FISH.filter(f=>f.z===z.id&&f.r!=='trash'),got=all.filter(f=>S.atlas[f.id]).length;
+  return `<div class="zone-item ${cur?'cur':''}"><span class="em">${z.e}</span><div style="min-width:0"><div class="title">${z.n}</div><div class="sub">${z.d}</div><div class="sub mono">Атлас ${got}/${all.length}</div></div>
+    ${own?(cur?'<span class="tag" style="color:var(--ok)">ты здесь</span>':`<button class="btn primary" data-act="go-zone" data-arg="${z.id}">Поехали</button>`):`<button class="btn ${S.coins>=p?'primary':''}" data-act="buy-zone" data-arg="${z.id}" ${S.coins>=p?'':'disabled'}>Открыть · <span class="price">${fmt(p)}</span> 🪙</button>`}</div>`;
+}
+function renderAtlas(){
+  const body=$('#atlas-body');
+  const all=FISH.filter(f=>f.r!=='trash'),got=all.filter(f=>S.atlas[f.id]).length;
+  let html=`<div class="card"><div class="row"><div class="grow"><div class="title">Открыто ${got} из ${all.length}</div><div class="sub">Секретные рыбы не показывают имя, пока не поймаешь.</div></div><b class="mono" style="font-size:20px">${Math.round(got/all.length*100)}%</b></div></div>`;
+  for(const z of ZONES){
+    const fs=FISH.filter(f=>f.z===z.id&&f.r!=='trash');const g=fs.filter(f=>S.atlas[f.id]).length;
+    html+=`<div class="zone-head"><h3>${z.e} ${z.n}</h3><span class="mono">${g}/${fs.length}${S.zones.includes(z.id)?'':' · закрыта'}</span></div><div class="atlas-grid">`;
+    html+=fs.map(f=>{const a=S.atlas[f.id];const R=RARITY[f.r];const secret=f.r==='secret'&&!a;return `
+      <div class="fish-card ${a?'':'locked'}" data-act="fish-info" data-arg="${f.id}" role="button" tabindex="0">
+        <span class="dot" style="background:${R.color}"></span>
+        <span class="em">${secret?'❓':f.e}</span>
+        <div class="nm">${secret?'???':esc(f.n)}</div>
+        <div class="kg">${a?fkg(a.best)+' · ×'+a.n:'не поймана'}</div>
+      </div>`}).join('');
+    html+=`</div>`;
+  }
+  body.innerHTML=html;
+}
+function fishInfo(id){
+  const f=FISH_BY_ID[id],a=S.atlas[id],R=RARITY[f.r];
+  const secret=f.r==='secret'&&!a;
+  openModal(`<div class="result"><div class="big">${secret?'❓':f.e}</div><div class="nm">${secret?'???':esc(f.n)}</div><div>${rarTag(f.r)}</div>
+    <div class="q">${secret?'Никто не знает, что это. Пока.':esc(f.d)}</div>
+    <div class="stats" style="width:100%;margin-top:8px"><div class="stat"><small>Вес</small><b>${secret?'???':fkg(f.min)+'–'+fkg(f.max)}</b></div><div class="stat"><small>Поймано</small><b>${a?a.n:0}</b></div><div class="stat"><small>Рекорд</small><b>${a?fkg(a.best):'—'}</b></div></div>
+    <div class="sub">Водится: ${ZONES[f.z].e} ${ZONES[f.z].n}</div></div>
+    <div class="modal-actions"><button class="btn primary" data-act="close">Понял</button></div>`);
+}
+
+/* ===================== friends / duel ===================== */
+let duelSetup={names:[],per:5};
+function renderFriends(){
+  const body=$('#friends-body');
+  const st=S.stats,dl=dailyTarget();
+  const bk=st.bestKg?FISH_BY_ID[st.bestKg.f]:null,bp=st.bestPrice?FISH_BY_ID[st.bestPrice.f]:null;
+  const friends=Object.entries(S.friends).map(([n,v])=>({n,...v})).sort((a,b)=>b.wins-a.wins||(b.best?.price||0)-(a.best?.price||0));
+  body.innerHTML=`
+    <div class="card">
+      <div class="row"><span class="em">🎣</span><div class="grow"><input class="input" id="name-input" value="${esc(S.name)}" maxlength="18" placeholder="Твоё имя" aria-label="Твоё имя"></div><button class="btn" data-act="save-name">Ок</button></div>
+      <div class="stats">
+        <div class="stat"><small>Забросов</small><b>${fmt(st.casts)}</b></div>
+        <div class="stat"><small>Поймано</small><b>${fmt(st.catches)}</b></div>
+        <div class="stat"><small>Заработано</small><b>${fmt(st.earned)}</b></div>
+        <div class="stat"><small>Серия</small><b>${st.bestStreak}</b></div>
+        <div class="stat"><small>Мусора</small><b>${st.trash}</b></div>
+        <div class="stat"><small>Проклятий</small><b>${st.curses}</b></div>
+      </div>
+      <div class="sub">Самая тяжёлая: ${bk?`<b>${bk.e} ${esc(bk.n)} ${fkg(st.bestKg.kg)}</b>`:'пока нет'}<br>Самая дорогая: ${bp?`<b>${bp.e} ${esc(bp.n)} ${fmt(st.bestPrice.price)} 🪙</b>`:'пока нет'}</div>
+      <div class="row"><button class="btn grow" data-act="share-profile">Скопировать хвастовство</button><button class="btn" data-act="toggle-sound">${S.sound?'🔊 Звук':'🔇 Тихо'}</button></div>
+    </div>
+
+    <div class="card daily">
+      <div class="row"><span class="em">${dl.f.e}</span><div class="grow"><div class="title">Цель дня: ${esc(dl.f.n)}</div><div class="sub">${ZONES[dl.f.z].e} ${ZONES[dl.f.z].n} · награда <b class="mono">${fmt(dl.reward)} 🪙</b>. У всех друзей сегодня та же цель: кто первый?</div></div>${S.daily.done?'<span class="tag" style="color:var(--ok)">готово</span>':''}</div>
+      <div class="sub">Выполнено дней: <b class="mono">${S.daily.count}</b></div>
+    </div>
+
+    <h3>Дуэль «передай телефон»</h3>
+    <div class="card">
+      <p class="sub" style="margin:0">Каждый делает по ${duelSetup.per} ${plural(duelSetup.per,'заброс','заброса','забросов')} в локации <b>${ZONES[S.zone].n}</b> на твоих снастях (наживка — червяк, чтобы честно). Считаем цену улова. Проигравший тянет фант.</p>
+      <div class="row"><input class="input" id="duel-name" placeholder="Имя друга" maxlength="16" aria-label="Имя друга"><button class="btn" data-act="duel-add">Добавить</button></div>
+      <div class="chips" id="duel-chips">${[S.name,...duelSetup.names].map((n,i)=>`<span class="pchip">${esc(n)}${i?`<button data-act="duel-rm" data-arg="${i-1}" aria-label="Убрать">✕</button>`:''}</span>`).join('')}</div>
+      <div class="row"><span class="sub">Забросов:</span><span class="seg">${[3,5,7].map(n=>`<button data-act="duel-per" data-arg="${n}" class="${duelSetup.per===n?'on':''}">${n}</button>`).join('')}</span></div>
+      <button class="btn primary" data-act="duel-start" ${duelSetup.names.length?'':'disabled'}>Начать дуэль (${duelSetup.names.length+1} ${plural(duelSetup.names.length+1,'игрок','игрока','игроков')})</button>
+    </div>
+
+    <h3>Таблица тусовки</h3>
+    ${friends.length?`<div class="card" style="padding:6px 8px"><table class="lb"><thead><tr><th>#</th><th>Имя</th><th>Побед</th><th>Дуэлей</th><th>Лучший улов</th></tr></thead><tbody>
+      ${friends.map((f,i)=>`<tr><td>${['🥇','🥈','🥉'][i]||i+1}</td><td>${esc(f.n)}</td><td class="n">${f.wins}</td><td class="n">${f.plays}</td><td>${f.best?FISH_BY_ID[f.best.f].e+' '+fmt(f.best.price):'—'}</td></tr>`).join('')}
+    </tbody></table></div>`:`<div class="empty">Сыграйте дуэль, и тут появится, кто в компании главный рыбак, а кто главный мойщик посуды.</div>`}
+
+    <h3>Фанты</h3>
+    <div class="card"><div class="forfeit" id="forfeit-box"><small>Крутани, если нужен фант</small><b>🎲</b></div><button class="btn" data-act="forfeit">Крутануть фант</button></div>
+  `;
+}
+function duelStart(){
+  if(!duelSetup.names.length)return;
+  const names=[S.name,...duelSetup.names];
+  duel={players:names.map(n=>({n,casts:duelSetup.per,score:0,catches:0,best:null})),i:0,per:duelSetup.per,zone:S.zone,savedBait:S.bait};
+  S.bait='worm';S.duelsHosted++;save();
+  setTab('fish');
+  renderDuelBadge();
+  openModal(`<h2>Дуэль начинается</h2><p>${names.map(esc).join(' против ')}. По ${duel.per} ${plural(duel.per,'заброс','заброса','забросов')} каждому в локации ${ZONES[S.zone].n}. Улов в рюкзак не идёт — только в счёт.</p>
+    <div class="forfeit"><small>Первый ходит</small><b>${esc(names[0])}</b></div>
+    <div class="modal-actions"><button class="btn primary" data-act="close">Погнали</button></div>`);
+}
+function renderDuelBadge(){
+  const b=$('#duel-badge');
+  $('#scene').classList.toggle('duel',!!duel);
+  if(!duel){b.hidden=true;return}
+  const p=duel.players[duel.i];
+  b.hidden=false;b.innerHTML=`<span>⚔️ <b>${esc(p.n)}</b> · ${duel.per-p.casts+1}/${duel.per} · <span class="mono">${fmt(p.score)}</span></span><button data-act="duel-quit" aria-label="Выйти из дуэли">✕</button>`;
+}
+function duelAfterCast(){
+  const p=duel.players[duel.i];p.casts--;
+  if(p.casts>0){renderDuelBadge();return}
+  if(duel.i<duel.players.length-1){
+    duel.i++;const nx=duel.players[duel.i];renderDuelBadge();
+    queueModal(`<h2>Передай телефон</h2><p>У ${esc(p.n)} забросы кончились, в счёте <b class="mono">${fmt(p.score)} 🪙</b>. Теперь ловит:</p><div class="forfeit"><small>Ход</small><b>${esc(nx.n)}</b></div>
+      <div class="modal-actions"><button class="btn primary" data-act="close">Я ${esc(nx.n)}, погнали</button></div>`);
+  }else{
+    duelFinish();
+  }
+}
+function duelFinish(){
+  const ps=[...duel.players].sort((a,b)=>b.score-a.score);
+  const winner=ps[0],loser=ps[ps.length-1];
+  const forfeit=pick(FORFEITS);
+  for(const p of duel.players){
+    const fr=S.friends[p.n]||(S.friends[p.n]={wins:0,plays:0,best:null});
+    fr.plays++;if(p===winner)fr.wins++;
+    if(p.best&&(!fr.best||p.best.price>fr.best.price))fr.best=p.best;
+  }
+  S.bait=duel.savedBait||'worm';if(S.bait!=='worm'&&!(S.baits[S.bait]>0))S.bait='worm';
+  const tie=ps.length>1&&ps[0].score===ps[1].score;
+  duel=null;save();renderDuelBadge();renderHUD();
+  queueModal(`<h2>${tie?'Ничья. Серьёзно?':'Побеждает '+esc(winner.n)+'!'}</h2>
+    <div class="card" style="padding:4px 12px">${ps.map((p,i)=>`<div class="rank"><span class="pos">${['🥇','🥈','🥉'][i]||i+1}</span><div style="min-width:0"><div class="title">${esc(p.n)}</div><div class="sub">${p.catches} ${plural(p.catches,'рыба','рыбы','рыб')}${p.best?' · лучшая: '+FISH_BY_ID[p.best.f].e+' '+esc(FISH_BY_ID[p.best.f].n):''}</div></div><b class="mono">${fmt(p.score)} 🪙</b></div>`).join('')}</div>
+    ${ps.length>1?`<div class="forfeit"><small>Фант для ${esc(loser.n)}</small><b>${esc(forfeit)}</b></div>`:''}
+    <div class="modal-actions"><button class="btn" data-act="share-duel" data-arg="${esc(winner.n)}|${winner.score}|${esc(loser.n)}|${esc(forfeit)}">Скопировать итог</button><button class="btn primary" data-act="duel-again">Реванш</button><button class="btn" data-act="close-friends">В тусовку</button></div>`);
+  SFX.win(4);
+}
+function duelQuit(){
+  openModal(`<h2>Бросить дуэль?</h2><p>Счёт сгорит, фант никто не получит. Друзья запомнят.</p><div class="modal-actions"><button class="btn" data-act="close">Остаться</button><button class="btn primary" data-act="duel-quit-yes">Бросить</button></div>`);
+}
+
+/* ===================== share ===================== */
+function copyText(text){
+  const done=()=>toast('Скопировано. Кидай в чат','ok');
+  const fallback=()=>{try{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();done()}catch(e){openModal(`<h2>Скопируй вручную</h2><p style="user-select:text;-webkit-user-select:text;color:var(--ink)">${esc(text)}</p><div class="modal-actions"><button class="btn primary" data-act="close">Ок</button></div>`)}};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(done,fallback);else fallback();
+}
+function shareCatch(id){
+  const i=S.inv.find(x=>x.id===id);if(!i)return;
+  const f=FISH_BY_ID[i.f],m=i.mut?MUT_BY_ID[i.mut]:null;
+  copyText(`🎣 Рыбный Замес: ${S.name} вытащил ${f.e} ${f.n.toUpperCase()} ${fkg(i.kg)} (${RARITY[f.r].name}${m?', '+m.n:''}) за ${fmt(i.price)} монет. Побей, если сможешь.`);
+}
+function shareProfile(){
+  const st=S.stats,bk=st.bestKg?FISH_BY_ID[st.bestKg.f]:null;
+  copyText(`🎣 Рыбный Замес · ${S.name}: ${fmt(st.catches)} рыб, ${fmt(st.earned)} монет заработано, атлас ${Object.keys(S.atlas).filter(k=>FISH_BY_ID[k]&&FISH_BY_ID[k].r!=='trash').length}/${FISH.filter(f=>f.r!=='trash').length}${bk?`, рекорд ${bk.e} ${bk.n} ${fkg(st.bestKg.kg)}`:''}. Кто больше?`);
+}
+
+/* ===================== zones & baits sheets ===================== */
+function openZones(){
+  openModal(`<h2>Куда едем?</h2><div class="card" style="padding:4px 12px">${ZONES.map(zoneRow).join('')}</div><div class="modal-actions"><button class="btn" data-act="close">Закрыть</button></div>`);
+}
+function openBaits(){
+  openModal(`<h2>Что насаживаем?</h2><div class="card" style="padding:4px 12px">${BAITS.map(b=>{const n=b.id==='worm'?'∞':(S.baits[b.id]||0),can=b.id==='worm'||n>0;return `<div class="zone-item ${S.bait===b.id?'cur':''}"><span class="em">${{worm:'🪱',bread:'🍞',corn:'🌽',firefly:'✨',shark:'🥩',energy:'🧃'}[b.id]}</span><div style="min-width:0"><div class="title">${b.n}</div><div class="sub">удача +${b.luck} · мутации ×${b.mut} · осталось <b class="mono">${n}</b></div></div>${S.bait===b.id?'<span class="tag" style="color:var(--ok)">на крючке</span>':can?`<button class="btn primary" data-act="equip-bait" data-arg="${b.id}">Взять</button>`:`<button class="btn" data-act="shop-baits">Купить</button>`}</div>`}).join('')}</div><div class="modal-actions"><button class="btn" data-act="close">Закрыть</button></div>`);
+}
+function openDaily(){
+  const dl=dailyTarget();
+  openModal(`<div class="result"><div class="big">${dl.f.e}</div><div class="nm">Цель дня: ${esc(dl.f.n)}</div><div>${rarTag(dl.f.r)}</div><div class="q">Водится: ${ZONES[dl.f.z].e} ${ZONES[dl.f.z].n}. Награда <b class="mono">${fmt(dl.reward)} 🪙</b>. Цель одна на всех, у кого открыта игра сегодня. Кто первый скинет скрин в чат, тот и молодец.</div>${S.daily.done?'<div class="flag rec" style="padding:6px 12px;border-radius:999px;background:var(--ok);color:#06251a;font-weight:700">Сегодня выполнено</div>':''}</div><div class="modal-actions"><button class="btn primary" data-act="close">Понял</button></div>`);
+}
+function intro(){
+  openModal(`<h2>Рыбный Замес</h2>
+    <p>Кидай, жди, подсекай, вываживай. Продавай Петровичу, покупай снасти, открывай локации. Собери атлас. Ищи секретных.</p>
+    <div class="card" style="gap:6px">
+      <div class="row"><span class="em">🎣</span><div><b>Заброс.</b> Жми кнопку и жди. Когда поплавок дёрнется — жми куда угодно, быстро.</div></div>
+      <div class="row"><span class="em">🟩</span><div><b>Вываживание.</b> Зажми экран: зелёная зона всплывает. Отпусти: тонет. Держи рыбу внутри, пока полоска не заполнится.</div></div>
+      <div class="row"><span class="em">🥾</span><div><b>Проклятия.</b> Поймал Проклятый Ботинок — экран перевернётся или затрясёт. Это нормально. Это смешно.</div></div>
+      <div class="row"><span class="em">🍻</span><div><b>Тусовка.</b> Дуэль «передай телефон», фанты для проигравшего, общая цель дня.</div></div>
+    </div>
+    <div class="row"><input class="input" id="intro-name" placeholder="Как тебя звать, рыбак?" maxlength="18" aria-label="Твоё имя"></div>
+    <div class="modal-actions"><button class="btn primary" data-act="intro-done">К воде</button></div>`);
+}
+
+/* ===================== actions ===================== */
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el)return;
+  const act=el.dataset.act,arg=el.dataset.arg;
+  switch(act){
+    case 'tab':setTab(arg);break;
+    case 'close':closeModal();break;
+    case 'close-cast':closeModal();if(phase==='idle'&&$('#modal').hidden)cast();break;
+    case 'close-friends':closeModal();setTab('friends');break;
+    case 'zones':openZones();break;
+    case 'baits':openBaits();break;
+    case 'daily':openDaily();break;
+    case 'shop-baits':closeModal();shopTab='baits';setTab('shop');break;
+    case 'shoptab':shopTab=arg;renderShop();break;
+    case 'sell-one':{const i=S.inv.find(x=>x.id===+arg);if(i)sellItems([i]);break}
+    case 'sell-all':sellItems([...S.inv]);break;
+    case 'sell-trash':sellItems(S.inv.filter(i=>FISH_BY_ID[i.f].r==='trash'));break;
+    case 'sell-dupes':{const best={};for(const i of S.inv){if(!best[i.f]||i.price>best[i.f].price)best[i.f]=i}const keep=new Set(Object.values(best).map(i=>i.id));sellItems(S.inv.filter(i=>!keep.has(i.id)));break}
+    case 'buy-rod':{const r=ROD_BY_ID[arg],p=salePrice(r.p);if(S.coins<p)return toast('Не хватает монет','bad');S.coins-=p;S.rods.push(r.id);S.rod=r.id;save();SFX.coin();coinsPop();toast('Новая удочка: '+r.n,'ok');renderHUD();renderShop();break}
+    case 'equip-rod':S.rod=arg;save();renderHUD();renderShop();break;
+    case 'buy-bait':{const b=BAIT_BY_ID[arg],p=salePrice(b.p);if(S.coins<p)return toast('Не хватает монет','bad');S.coins-=p;S.baits[b.id]=(S.baits[b.id]||0)+b.pack;if(S.bait==='worm')S.bait=b.id;save();SFX.coin();coinsPop();renderHUD();renderShop();break}
+    case 'equip-bait':{if(duel)return toast('В дуэли все ловят на червяка','bad');S.bait=arg;save();renderHUD();closeModal();if(tab==='shop')renderShop();break}
+    case 'buy-zone':{const z=ZONES[+arg],p=salePrice(z.p);if(S.coins<p)return toast('Не хватает монет','bad');if(duel)return toast('Сначала закончи дуэль','bad');S.coins-=p;S.zones.push(z.id);S.zone=z.id;save();SFX.coin();coinsPop();toast('Открыто: '+z.n,'ok');closeModal();renderHUD();if(tab==='shop')renderShop();if(tab==='fish'&&phase!=='idle')cancelCast();break}
+    case 'go-zone':{if(duel)return toast('В дуэли локацию не меняют','bad');S.zone=+arg;save();closeModal();renderHUD();if(phase!=='idle')cancelCast();setStatus(ZONES[S.zone].n,ZONES[S.zone].d);if(tab==='shop')renderShop();break}
+    case 'buy-bag':{const b=BAGS[S.bag+1];if(!b)return;const p=salePrice(b.p);if(S.coins<p)return toast('Не хватает монет','bad');S.coins-=p;S.bag++;save();SFX.coin();coinsPop();toast('Теперь '+b.cap+' слотов','ok');renderHUD();renderShop();break}
+    case 'fish-info':fishInfo(arg);break;
+    case 'save-name':{const v=$('#name-input').value.trim();if(v){S.name=v.slice(0,18);save();renderHUD();toast('Теперь ты '+S.name)}break}
+    case 'toggle-sound':S.sound=!S.sound;save();renderFriends();break;
+    case 'share-catch':shareCatch(+arg);break;
+    case 'share-profile':shareProfile();break;
+    case 'share-duel':{const [w,s,l,f]=arg.split('|');copyText(`⚔️ Дуэль в Рыбном Замесе: победил ${w} с уловом на ${fmt(+s)} монет. ${l} проиграл и теперь: ${f}`);break}
+    case 'forfeit':{const b=$('#forfeit-box');b.innerHTML=`<small>Фант</small><b>${esc(pick(FORFEITS))}</b>`;SFX.tick();break}
+    case 'duel-add':{const inp=$('#duel-name');const v=inp.value.trim().slice(0,16);if(!v)return;if(v===S.name||duelSetup.names.includes(v))return toast('Такой уже есть','bad');if(duelSetup.names.length>=5)return toast('Максимум 6 игроков','bad');duelSetup.names.push(v);renderFriends();$('#duel-name').focus();break}
+    case 'duel-rm':duelSetup.names.splice(+arg,1);renderFriends();break;
+    case 'duel-per':duelSetup.per=+arg;renderFriends();break;
+    case 'duel-start':if(phase!=='idle')cancelCast();duelStart();break;
+    case 'duel-again':closeModal();setTab('friends');duelStart();break;
+    case 'duel-quit':duelQuit();break;
+    case 'duel-quit-yes':{if(duel){S.bait=duel.savedBait||'worm';if(S.bait!=='worm'&&!(S.baits[S.bait]>0))S.bait='worm'}duel=null;if(phase!=='idle')cancelCast();closeModal();renderDuelBadge();renderHUD();toast('Дуэль отменена');break}
+    case 'intro-done':{const v=$('#intro-name').value.trim();if(v)S.name=v.slice(0,18);S.seenIntro=true;save();closeModal();renderHUD();break}
+  }
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='duel-name'){e.preventDefault();$('[data-act="duel-add"]')?.click()}if(e.key==='Enter'&&e.target.id==='name-input'){e.preventDefault();$('[data-act="save-name"]')?.click()}if(e.key==='Enter'&&e.target.id==='intro-name'){e.preventDefault();$('[data-act="intro-done"]')?.click()}if(e.key==='Escape'&&!$('#modal').hidden)closeModal()});
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&phase==='idle')closeModal()});
+function cancelCast(){clearTimeout(biteTimer);clearTimeout(castTimer);reel=null;hooked=null;$('#reel').hidden=true;endCast('lose');setStatus('Нажми «Забросить»','')}
+
+/* input: cast button, hold anywhere in play area, space key */
+$('#btn-cast').addEventListener('click',()=>{if(phase==='idle')cast()});
+const play=$('#play');
+function pressDown(e){
+  if(e&&e.pointerType!==undefined&&e.button>0)return;
+  ac();
+  if(phase==='bite'){holding=true;hook();return}
+  if(phase==='reel'){holding=true;return}
+  if(phase==='waiting'&&e&&e.target.closest('#scene'))setStatus('Ждём поклёвку…','Рано. Терпение, рыбак.');
+}
+function pressUp(){holding=false}
+play.addEventListener('pointerdown',e=>{pressDown(e)});
+window.addEventListener('pointerup',pressUp);window.addEventListener('pointercancel',pressUp);window.addEventListener('blur',pressUp);
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&!e.repeat&&!/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)){e.preventDefault();if(phase==='idle'&&$('#modal').hidden&&tab==='fish')cast();else pressDown(null)}});
+document.addEventListener('keyup',e=>{if(e.code==='Space')pressUp()});
+play.addEventListener('contextmenu',e=>e.preventDefault());
+
+/* ===================== canvas scene ===================== */
+const cv=$('#cv'),cx=cv.getContext('2d');let W=0,H=0;
+function resize(){const r=cv.getBoundingClientRect();if(!r.width)return;const dpr=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);cx.setTransform(dpr,0,0,dpr,0,0);W=r.width;H=r.height}
+window.addEventListener('resize',resize);
+const amb=[];for(let i=0;i<5;i++)amb.push({x:Math.random(),y:.5+Math.random()*.45,v:(.02+Math.random()*.04)*(Math.random()<.5?1:-1),s:12+Math.random()*10,o:.25+Math.random()*.3});
+let ripples=[],splash=[];
+function draw(t){
+  if(!W||document.hidden){requestAnimationFrame(draw);return}
+  const z=ZONES[S.zone],[s1,s2,w1,w2]=z.pal;const hz=H*.4;
+  let g=cx.createLinearGradient(0,0,0,hz);g.addColorStop(0,s1);g.addColorStop(1,s2);cx.fillStyle=g;cx.fillRect(0,0,W,hz+2);
+  // sun / moon
+  cx.beginPath();cx.arc(W*.8,hz*.45,S.zone===5?10:18,0,7);cx.fillStyle=z.sun;cx.globalAlpha=S.zone===5?.4:.9;cx.fill();cx.globalAlpha=1;
+  if(S.zone===1||S.zone===3||S.zone===5){cx.fillStyle='rgba(255,255,255,.7)';const rg=mulberry(7);for(let i=0;i<26;i++){cx.globalAlpha=.3+.6*Math.abs(Math.sin(t*.001+i));cx.fillRect(rg()*W,rg()*hz*.8,1.5,1.5)}cx.globalAlpha=1}
+  if(S.zone===1){cx.fillStyle='rgba(0,0,0,.55)';for(let i=0;i<9;i++){const bw=W/9,bh=hz*(.25+((i*37)%50)/100);cx.fillRect(i*bw,hz-bh,bw-3,bh)}cx.fillStyle='rgba(255,220,120,.5)';for(let i=0;i<30;i++){cx.fillRect((i*53)%W,hz-((i*29)%60)-8,3,3)}}
+  if(S.zone===4){cx.fillStyle='rgba(60,10,5,.9)';cx.beginPath();cx.moveTo(0,hz);cx.lineTo(W*.3,hz*.3);cx.lineTo(W*.5,hz);cx.closePath();cx.fill();cx.fillStyle='#ff6a2b';cx.fillRect(W*.29,hz*.3,W*.02,4)}
+  if(S.zone===3){cx.fillStyle='rgba(220,240,255,.85)';cx.beginPath();cx.moveTo(0,hz);cx.lineTo(W*.12,hz*.55);cx.lineTo(W*.3,hz);cx.closePath();cx.fill()}
+  g=cx.createLinearGradient(0,hz,0,H);g.addColorStop(0,w1);g.addColorStop(1,w2);cx.fillStyle=g;cx.fillRect(0,hz,W,H-hz);
+  // ambient fish
+  cx.font='16px serif';cx.textBaseline='middle';
+  for(const a of amb){a.x+=a.v*(1/60);if(a.x>1.1)a.x=-.1;if(a.x<-.1)a.x=1.1;cx.globalAlpha=a.o;cx.save();cx.translate(a.x*W,hz+(H-hz)*a.y+Math.sin(t*.002+a.s)*3);if(a.v>0)cx.scale(-1,1);cx.font=a.s+'px serif';cx.fillText('🐟',0,0);cx.restore()}
+  cx.globalAlpha=1;
+  // waves
+  for(let i=0;i<3;i++){cx.beginPath();cx.moveTo(0,H);for(let x=0;x<=W;x+=6){const y=hz+i*9+Math.sin(x*.02+t*.0015*(i+1)+i*2)*4+Math.sin(x*.047-t*.001)*2;cx.lineTo(x,y)}cx.lineTo(W,H);cx.closePath();cx.fillStyle=`rgba(236,228,210,${.05-i*.012})`;cx.fill()}
+  // bobber & line
+  const active=phase==='waiting'||phase==='bite'||phase==='reel'||phase==='casting';
+  const bx=W*.58,surface=hz+Math.sin(bx*.02+t*.0015)*4;
+  let by=surface+Math.sin(t*.003)*2;
+  if(phase==='bite')by+=9+Math.random()*5;
+  if(phase==='reel'&&reel)by+=6+Math.sin(t*.02)*4;
+  if(phase==='casting')by=surface-(H*.5)*(1-Math.min(1,(t-castAt)/650));
+  // rod
+  cx.strokeStyle='rgba(236,228,210,.7)';cx.lineWidth=3;cx.beginPath();cx.moveTo(-4,H*.95);cx.lineTo(W*.18,hz*.25);cx.stroke();
+  if(active){cx.strokeStyle='rgba(236,228,210,.45)';cx.lineWidth=1;cx.beginPath();cx.moveTo(W*.18,hz*.25);cx.quadraticCurveTo(W*.4,hz*.35+(phase==='reel'?-20:40),bx,by);cx.stroke();
+    cx.beginPath();cx.arc(bx,by,7,Math.PI,0);cx.fillStyle='#ff5a3c';cx.fill();cx.beginPath();cx.arc(bx,by,7,0,Math.PI);cx.fillStyle='#fff';cx.fill();cx.fillStyle='#ff5a3c';cx.fillRect(bx-1,by-16,2,10);
+    if(phase==='waiting'&&Math.random()<.02)ripples.push({x:bx,y:surface+2,r:4,a:.5});
+    if(phase==='bite'&&Math.random()<.3)ripples.push({x:bx,y:surface+2,r:6,a:.7});
+    if(phase==='reel'&&Math.random()<.5)splash.push({x:bx+rnd(-6,6),y:by,vx:rnd(-40,40),vy:rnd(-120,-40),l:1});
+  }
+  ripples=ripples.filter(r=>r.a>0);for(const r of ripples){r.r+=.6;r.a-=.012;cx.strokeStyle=`rgba(236,228,210,${r.a})`;cx.lineWidth=1;cx.beginPath();cx.ellipse(r.x,r.y,r.r,r.r*.35,0,0,7);cx.stroke()}
+  splash=splash.filter(p=>p.l>0);for(const p of splash){p.l-=.03;p.x+=p.vx/60;p.y+=p.vy/60;p.vy+=300/60;cx.fillStyle=`rgba(236,228,210,${p.l})`;cx.fillRect(p.x,p.y,2,2)}
+  requestAnimationFrame(draw);
+}
+
+/* ===================== init ===================== */
+function init(){
+  load();
+  resize();requestAnimationFrame(draw);
+  renderHUD();renderEventBar();renderDuelBadge();
+  setStatus('Нажми «Забросить»',ZONES[S.zone].d);
+  scheduleEvent();
+  dailyTarget();
+  if(!S.seenIntro)intro();
+  setTimeout(resize,50);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)resize()});
+  try{window.claude?.hot?.snapshot?.(()=>({}))}catch(e){}
+}
+try{
+  if(window.claude?.hot?.ready)window.claude.hot.ready(()=>init());else init();
+}catch(e){init()}
+</script>
+</body>
+</html>
